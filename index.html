@@ -11,18 +11,18 @@
         
         /* Cabeçalho */
         header { background-color: #004aad; color: white; padding: 20px; text-align: center; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: background-color 0.5s; }
-        
-        #logo-escola { 
-            width: 100%; max-width: 400px; height: auto; max-height: 130px; object-fit: contain; 
-            border-radius: 8px; margin-bottom: 12px; background-color: white; padding: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); 
-        }
+        #logo-escola { width: 100%; max-width: 400px; height: auto; max-height: 130px; object-fit: contain; border-radius: 8px; margin-bottom: 12px; background-color: white; padding: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
         header h1 { font-size: 1.3rem; font-weight: 600; }
         
         /* Menu Principal */
         #menu-blocos { padding: 25px 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .bloco { background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 15px; padding: 25px 10px; text-align: center; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
         .bloco:active { transform: scale(0.95); background-color: #e2e6ea; }
-        .bloco-icone { font-size: 2.8rem; margin-bottom: 12px; }
+        
+        /* Ajuste Mágico para aceitar Imagens como Ícones */
+        .bloco-icone { font-size: 2.8rem; margin-bottom: 12px; display: flex; justify-content: center; align-items: center; min-height: 60px; }
+        .bloco-icone img { width: 65px; height: 65px; object-fit: cover; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); border: 2px solid #fff; }
+        
         .bloco-titulo { font-size: 0.95rem; font-weight: 600; color: #495057; }
         
         /* Telas de Conteúdo */
@@ -30,13 +30,12 @@
         .btn-voltar { background: none; border: none; font-size: 1rem; font-weight: 600; cursor: pointer; margin-bottom: 20px; display: flex; align-items: center; gap: 5px; }
         .titulo-tela { font-size: 1.4rem; color: #212529; margin-bottom: 15px; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; }
         
-        /* Estilo 1: Avisos */
+        /* Estilos dos Cartões */
         .cartao-aviso { background-color: #fff; border-left: 4px solid #ffc107; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 8px; padding: 15px; margin-bottom: 15px; }
         .aviso-data { display: block; font-size: 0.8rem; color: #6c757d; margin-bottom: 8px; font-weight: 600; }
         .aviso-texto { font-size: 1rem; color: #333; line-height: 1.4; }
         .aviso-link { display: inline-block; margin-top: 10px; font-size: 0.9rem; font-weight: 600; }
         
-        /* Estilo 2: Documentos (NOVO) */
         .cartao-doc { display: flex; align-items: center; background: #fff; padding: 15px; border-radius: 10px; border: 1px solid #e9ecef; margin-bottom: 12px; text-decoration: none; color: inherit; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.2s;}
         .cartao-doc:active { background: #f8f9fa; transform: scale(0.98); }
         .doc-icone { font-size: 2.2rem; margin-right: 15px; }
@@ -111,10 +110,25 @@
                     const divBloco = document.createElement('div');
                     divBloco.className = 'bloco';
                     
-                    divBloco.onclick = () => abrirTela(botao["Aba de Destino"], botao["Tipo de Conteúdo"], botao["Ícone"] + " " + botao["Nome do Botão"]);
+                    let iconeConteudo = botao["Ícone"];
+                    let iconeParaTitulo = botao["Ícone"];
+                    
+                    // A MÁGICA DOS ÍCONES DE CAPA COMEÇA AQUI
+                    if (iconeConteudo && iconeConteudo.toString().startsWith("http")) {
+                        let linkIcone = iconeConteudo;
+                        // Se a capa vier do Google Drive, nós fazemos o ajuste
+                        const idMatch = linkIcone.match(/\/d\/(.*?)\//);
+                        if (idMatch && idMatch[1]) {
+                            linkIcone = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+                        }
+                        iconeConteudo = `<img src="${linkIcone}" alt="Capa">`;
+                        iconeParaTitulo = ""; // Remove a imagem do título da próxima tela para não ficar estranho
+                    }
+                    
+                    divBloco.onclick = () => abrirTela(botao["Aba de Destino"], botao["Tipo de Conteúdo"], (iconeParaTitulo ? iconeParaTitulo + " " : "") + botao["Nome do Botão"]);
                     
                     divBloco.innerHTML = `
-                        <div class="bloco-icone">${botao["Ícone"]}</div>
+                        <div class="bloco-icone">${iconeConteudo}</div>
                         <div class="bloco-titulo">${botao["Nome do Botão"]}</div>
                     `;
                     containerMenu.appendChild(divBloco);
@@ -136,7 +150,6 @@
             const resposta = await fetch(API_URL + "?aba=" + nomeAba);
             const dados = await resposta.json();
 
-            // Roteador de Telas
             if (tipoConteudo === "Avisos") {
                 desenharTelaAvisos(dados, container);
             } else if (tipoConteudo === "Documentos") {
@@ -165,15 +178,12 @@
         container.innerHTML = `<h2 class="titulo-tela">Últimas Novidades</h2>` + html;
     }
 
-    // NOVA FUNÇÃO: Desenha os Cartões de Documentos
     function desenharTelaDocumentos(dados, container) {
         if(dados.length === 0) {
             container.innerHTML += "<p>Nenhum documento encontrado.</p>"; return;
         }
-        
         let html = "";
         dados.forEach(doc => {
-            // Verifica se tem link, se não tiver, o cartão não faz nada ao clicar
             const linkTag = doc["Link do Google Drive"] ? `href="${doc["Link do Google Drive"]}" target="_blank"` : 'href="#" onclick="alert(\'Link não disponível\')"';
             
             html += `
@@ -189,8 +199,6 @@
                 </div>
             </a>`;
         });
-        
-        // Remove a mensagem de carregando e insere os documentos
         container.innerHTML = `<h2 class="titulo-tela">Acervo Pedagógico</h2>` + html;
     }
 
