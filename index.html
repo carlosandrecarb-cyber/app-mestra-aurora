@@ -10,8 +10,22 @@
         #app { width: 100%; max-width: 480px; min-height: 100vh; background-color: #ffffff; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
         
         /* Cabeçalho */
-        header { background-color: #004aad; /* Cor base (será substituída pela planilha) */ color: white; padding: 20px; text-align: center; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: background-color 0.5s; }
-        #logo-escola { width: 90px; height: 90px; border-radius: 50%; object-fit: contain; border: 3px solid white; margin-bottom: 10px; background-color: white;}
+        header { background-color: #004aad; color: white; padding: 20px; text-align: center; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: background-color 0.5s; }
+        
+        /* O SEGREDO DO BANNER RETANGULAR ESTÁ AQUI */
+        #logo-escola { 
+            width: 100%; /* Ocupa a largura disponível */
+            max-width: 400px; /* Mas não deixa ficar gigante */
+            height: auto; 
+            max-height: 130px; /* Limite de altura */
+            object-fit: contain; /* Garante que não vai cortar nenhuma letra */
+            border-radius: 8px; /* Bordas levemente arredondadas */
+            margin-bottom: 12px; 
+            background-color: white; /* Fundo branco para destacar no verde */
+            padding: 5px; /* Uma margem interna bonitinha */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15); /* Sombra elegante */
+        }
+        
         header h1 { font-size: 1.3rem; font-weight: 600; }
         
         /* Área dos Blocos */
@@ -37,7 +51,6 @@
 </div>
 
 <script>
-    // A SUA URL DA API (MANTIDA INTACTA)
     const API_URL = "https://script.google.com/macros/s/AKfycbxfewC2cAeLK3ULrRcOP72E0KUqoteBNgw2TI5GUOl4WFYhQLIQoJNOWsLOFMl-zOIQzg/exec";
 
     async function iniciarApp() {
@@ -49,31 +62,27 @@
             if(dadosConfig.length > 0) {
                 const config = dadosConfig[0];
                 
-                // TRUQUE PARA A LOGO DO GOOGLE DRIVE FUNCIONAR
                 let linkImagem = config["Link da Logo"];
                 const idMatch = linkImagem.match(/\/d\/(.*?)\//);
                 if (idMatch && idMatch[1]) {
-                    // Transforma em link direto de visualização
                     linkImagem = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
                 }
 
-                // TRUQUE PARA AS CORES
                 let corNome = config["Cor Principal"].trim();
                 const mapaCores = {
                     "Azul": "#004aad",
-                    "Verde": "#198754", // Verde escolar padrão
+                    "Verde": "#198754", 
                     "Vermelho": "#dc3545",
                     "Amarelo": "#ffc107",
                     "Laranja": "#fd7e14",
                     "Roxo": "#6f42c1",
                     "Preto": "#212529"
                 };
-                // Aplica a cor (se ele não achar o nome no mapa, tenta usar o que estiver escrito)
                 const corFinal = mapaCores[corNome] || corNome; 
                 document.getElementById('cabecalho').style.backgroundColor = corFinal;
 
                 document.getElementById('cabecalho').innerHTML = `
-                    <img id="logo-escola" src="${linkImagem}" alt="Logo" onerror="this.src='https://via.placeholder.com/90?text=Logo'">
+                    <img id="logo-escola" src="${linkImagem}" alt="Logo" onerror="this.src='https://via.placeholder.com/400x120?text=Logo+Retangular'">
                     <h1>${config["Nome da Escola"]}</h1>
                 `;
             }
