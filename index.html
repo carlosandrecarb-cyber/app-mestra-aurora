@@ -18,23 +18,32 @@
         }
         header h1 { font-size: 1.3rem; font-weight: 600; }
         
-        /* Área dos Blocos (Menu Principal) */
+        /* Menu Principal */
         #menu-blocos { padding: 25px 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .bloco { background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 15px; padding: 25px 10px; text-align: center; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
         .bloco:active { transform: scale(0.95); background-color: #e2e6ea; }
         .bloco-icone { font-size: 2.8rem; margin-bottom: 12px; }
         .bloco-titulo { font-size: 0.95rem; font-weight: 600; color: #495057; }
         
-        /* Novas Telas (Conteúdo) */
+        /* Telas de Conteúdo */
         #tela-conteudo { display: none; padding: 20px; }
-        .btn-voltar { background: none; border: none; color: #004aad; font-size: 1rem; font-weight: 600; cursor: pointer; margin-bottom: 20px; display: flex; align-items: center; gap: 5px; }
+        .btn-voltar { background: none; border: none; font-size: 1rem; font-weight: 600; cursor: pointer; margin-bottom: 20px; display: flex; align-items: center; gap: 5px; }
         .titulo-tela { font-size: 1.4rem; color: #212529; margin-bottom: 15px; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; }
         
-        /* Estilo dos Avisos */
+        /* Estilo 1: Avisos */
         .cartao-aviso { background-color: #fff; border-left: 4px solid #ffc107; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 8px; padding: 15px; margin-bottom: 15px; }
         .aviso-data { display: block; font-size: 0.8rem; color: #6c757d; margin-bottom: 8px; font-weight: 600; }
         .aviso-texto { font-size: 1rem; color: #333; line-height: 1.4; }
-        .aviso-link { display: inline-block; margin-top: 10px; font-size: 0.9rem; color: #004aad; text-decoration: none; font-weight: 600; }
+        .aviso-link { display: inline-block; margin-top: 10px; font-size: 0.9rem; font-weight: 600; }
+        
+        /* Estilo 2: Documentos (NOVO) */
+        .cartao-doc { display: flex; align-items: center; background: #fff; padding: 15px; border-radius: 10px; border: 1px solid #e9ecef; margin-bottom: 12px; text-decoration: none; color: inherit; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.2s;}
+        .cartao-doc:active { background: #f8f9fa; transform: scale(0.98); }
+        .doc-icone { font-size: 2.2rem; margin-right: 15px; }
+        .doc-info { flex: 1; }
+        .doc-titulo { font-weight: 600; font-size: 1rem; color: #333; margin-bottom: 5px; }
+        .doc-tags { font-size: 0.75rem; color: #6c757d; }
+        .tag { background: #e9ecef; padding: 3px 8px; border-radius: 12px; margin-right: 5px; display: inline-block; margin-bottom: 3px;}
         
         #loading { text-align: center; padding: 50px; color: #6c757d; font-size: 1rem; grid-column: span 2;}
     </style>
@@ -43,15 +52,13 @@
 
 <div id="app">
     <header id="cabecalho">
-        <div id="loading-header">Carregando dados...</div>
+        <div id="loading-header">Carregando...</div>
     </header>
 
-    <!-- Tela 1: Menu de Botões -->
     <div id="menu-blocos">
         <div id="loading">Conectando à planilha...</div>
     </div>
 
-    <!-- Tela 2: Onde os dados vão aparecer (Avisos, Provas, etc) -->
     <div id="tela-conteudo">
         <button class="btn-voltar" onclick="voltarMenu()" id="btn-voltar-cor">⬅ Voltar ao Menu</button>
         <div id="conteudo-dinamico"></div>
@@ -60,11 +67,10 @@
 
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxfewC2cAeLK3ULrRcOP72E0KUqoteBNgw2TI5GUOl4WFYhQLIQoJNOWsLOFMl-zOIQzg/exec";
-    let corEscola = "#004aad"; // Variável para guardar a cor da escola
+    let corEscola = "#004aad"; 
 
     async function iniciarApp() {
         try {
-            // Busca as Configurações
             const respostaConfig = await fetch(API_URL + "?aba=Configuracoes_Gerais");
             const dadosConfig = await respostaConfig.json();
             
@@ -72,7 +78,6 @@
                 const config = dadosConfig[0];
                 let linkImagem = config["Link da Logo"];
                 
-                // Se for link do Drive, adapta. Se não for, usa direto (imagem do GitHub)
                 const idMatch = linkImagem.match(/\/d\/(.*?)\//);
                 if (idMatch && idMatch[1]) {
                     linkImagem = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
@@ -88,12 +93,11 @@
                 document.getElementById('btn-voltar-cor').style.color = corEscola;
 
                 document.getElementById('cabecalho').innerHTML = `
-                    <img id="logo-escola" src="${linkImagem}" alt="Logo" onerror="this.src='https://via.placeholder.com/400x120?text=Logo+Retangular'">
+                    <img id="logo-escola" src="${linkImagem}" alt="Logo" onerror="this.src='https://via.placeholder.com/400x120?text=Logo'">
                     <h1>${config["Nome da Escola"]}</h1>
                 `;
             }
 
-            // Busca os Botões do Menu
             const respostaMenu = await fetch(API_URL + "?aba=Menu_Configuracoes");
             const dadosMenu = await respostaMenu.json();
             
@@ -107,7 +111,6 @@
                     const divBloco = document.createElement('div');
                     divBloco.className = 'bloco';
                     
-                    // AGORA O BOTÃO ABRE A NOVA TELA!
                     divBloco.onclick = () => abrirTela(botao["Aba de Destino"], botao["Tipo de Conteúdo"], botao["Ícone"] + " " + botao["Nome do Botão"]);
                     
                     divBloco.innerHTML = `
@@ -122,7 +125,6 @@
         }
     }
 
-    // Função que esconde o menu e abre a tela de conteúdo
     async function abrirTela(nomeAba, tipoConteudo, tituloBotao) {
         document.getElementById('menu-blocos').style.display = 'none';
         document.getElementById('tela-conteudo').style.display = 'block';
@@ -134,41 +136,64 @@
             const resposta = await fetch(API_URL + "?aba=" + nomeAba);
             const dados = await resposta.json();
 
-            // Roteador: Decide como desenhar a tela dependendo do Tipo
+            // Roteador de Telas
             if (tipoConteudo === "Avisos") {
                 desenharTelaAvisos(dados, container);
+            } else if (tipoConteudo === "Documentos") {
+                desenharTelaDocumentos(dados, container);
             } else {
-                // Deixa preparado para os próximos blocos (Provas, Alunos, etc)
-                container.innerHTML += `<p>O visual para o tipo "${tipoConteudo}" ainda será construído!</p>`;
+                container.innerHTML += `<p>O visual para "${tipoConteudo}" será construído em breve!</p>`;
             }
         } catch (erro) {
             container.innerHTML += `<p>Erro ao buscar os dados.</p>`;
         }
     }
 
-    // Função específica para desenhar a lista de Avisos
     function desenharTelaAvisos(dados, container) {
         if(dados.length === 0) {
-            container.innerHTML += "<p>Nenhum aviso publicado no momento.</p>";
-            return;
+            container.innerHTML += "<p>Nenhum aviso no momento.</p>"; return;
         }
-
         let html = "";
-        // O '.reverse()' faz o aviso mais novo (última linha da planilha) aparecer no topo!
         dados.reverse().forEach(aviso => {
             html += `
             <div class="cartao-aviso" style="border-left-color: ${corEscola}">
-                <span class="aviso-data">📅 Publicado em: ${aviso["Data"] || "Data não informada"}</span>
+                <span class="aviso-data">📅 Publicado em: ${aviso["Data"] || ""}</span>
                 <p class="aviso-texto">${aviso["Mensagem"] || ""}</p>
-                ${aviso["Link Anexo"] ? `<a href="${aviso["Link Anexo"]}" target="_blank" class="aviso-link">📎 Abrir Documento Anexo</a>` : ''}
+                ${aviso["Link Anexo"] ? `<a href="${aviso["Link Anexo"]}" target="_blank" class="aviso-link" style="color:${corEscola}">📎 Abrir Documento</a>` : ''}
             </div>`;
         });
-        
-        // Substitui o texto de "Buscando dados..." pelos avisos
         container.innerHTML = `<h2 class="titulo-tela">Últimas Novidades</h2>` + html;
     }
 
-    // Função do botão Voltar
+    // NOVA FUNÇÃO: Desenha os Cartões de Documentos
+    function desenharTelaDocumentos(dados, container) {
+        if(dados.length === 0) {
+            container.innerHTML += "<p>Nenhum documento encontrado.</p>"; return;
+        }
+        
+        let html = "";
+        dados.forEach(doc => {
+            // Verifica se tem link, se não tiver, o cartão não faz nada ao clicar
+            const linkTag = doc["Link do Google Drive"] ? `href="${doc["Link do Google Drive"]}" target="_blank"` : 'href="#" onclick="alert(\'Link não disponível\')"';
+            
+            html += `
+            <a ${linkTag} class="cartao-doc">
+                <div class="doc-icone">📄</div>
+                <div class="doc-info">
+                    <div class="doc-titulo">${doc["Nome do Documento"] || "Documento sem nome"}</div>
+                    <div class="doc-tags">
+                        ${doc["Categoria"] ? `<span class="tag">📁 ${doc["Categoria"]}</span>` : ''}
+                        ${doc["Ano Escolar"] ? `<span class="tag">🎓 ${doc["Ano Escolar"]}</span>` : ''}
+                        ${doc["Componente Curricular"] ? `<span class="tag">🏷️ ${doc["Componente Curricular"]}</span>` : ''}
+                    </div>
+                </div>
+            </a>`;
+        });
+        
+        // Remove a mensagem de carregando e insere os documentos
+        container.innerHTML = `<h2 class="titulo-tela">Acervo Pedagógico</h2>` + html;
+    }
+
     function voltarMenu() {
         document.getElementById('tela-conteudo').style.display = 'none';
         document.getElementById('menu-blocos').style.display = 'grid';
