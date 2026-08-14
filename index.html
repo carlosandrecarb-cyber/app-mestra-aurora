@@ -7,19 +7,16 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
-        /* Deixando a tela bonita tanto no Celular quanto no Computador */
         body { background-color: #f0f2f5; color: #333; display: flex; justify-content: center; padding: 0; }
-        @media (min-width: 768px) { body { padding: 30px; } } /* No PC ganha uma margem */
+        @media (min-width: 768px) { body { padding: 30px; } } 
         
         #app { width: 100%; max-width: 900px; min-height: 100vh; background-color: #ffffff; box-shadow: 0 5px 25px rgba(0,0,0,0.1); position: relative; display: flex; flex-direction: column;}
-        @media (min-width: 768px) { #app { min-height: 85vh; border-radius: 20px; overflow: hidden; } } /* No PC fica com bordas redondas */
+        @media (min-width: 768px) { #app { min-height: 85vh; border-radius: 20px; overflow: hidden; } } 
         
-        /* Cabeçalho */
         header { background-color: #004aad; color: white; padding: 25px 20px; text-align: center; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: background-color 0.5s; }
         #logo-escola { width: 100%; max-width: 400px; height: auto; max-height: 130px; object-fit: contain; border-radius: 8px; margin-bottom: 12px; background-color: white; padding: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
         header h1 { font-size: 1.4rem; font-weight: 600; }
         
-        /* Menu Principal (Agora se adapta ao tamanho da tela) */
         #menu-blocos { padding: 30px 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; flex: 1; align-content: start; }
         @media (min-width: 768px) { #menu-blocos { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; padding: 40px; } }
         
@@ -27,12 +24,10 @@
         .bloco:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.05); border-color: #dee2e6; }
         .bloco:active { transform: scale(0.95); background-color: #e2e6ea; }
         
-        /* Ajuste para aceitar Imagens como Ícones */
         .bloco-icone { font-size: 3rem; margin-bottom: 15px; display: flex; justify-content: center; align-items: center; min-height: 70px; }
         .bloco-icone img { width: 75px; height: 75px; object-fit: cover; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); border: 2px solid #fff; }
         .bloco-titulo { font-size: 1rem; font-weight: 600; color: #495057; }
         
-        /* Telas de Conteúdo */
         #tela-conteudo { display: none; padding: 20px; flex: 1; }
         @media (min-width: 768px) { #tela-conteudo { padding: 40px; } }
         
@@ -40,12 +35,10 @@
         .btn-voltar:hover { background: rgba(0,0,0,0.05); }
         .titulo-tela { font-size: 1.6rem; color: #212529; margin-bottom: 20px; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; }
         
-        /* Filtros Inteligentes (Novidade!) */
         .filtros-container { display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap; background: #f8f9fa; padding: 15px; border-radius: 12px; border: 1px solid #e9ecef;}
         .filtro-select { padding: 10px; border-radius: 8px; border: 1px solid #ced4da; flex: 1; min-width: 140px; font-size: 0.95rem; color: #495057; background-color: white; outline: none; transition: border-color 0.2s;}
         .filtro-select:focus { border-color: #004aad; }
         
-        /* Estilos dos Cartões */
         .cartao-aviso { background-color: #fff; border-left: 5px solid #ffc107; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-radius: 8px; padding: 18px; margin-bottom: 15px; transition: transform 0.2s; }
         .cartao-aviso:hover { transform: translateX(5px); }
         .aviso-data { display: block; font-size: 0.85rem; color: #6c757d; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
@@ -85,7 +78,7 @@
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxfewC2cAeLK3ULrRcOP72E0KUqoteBNgw2TI5GUOl4WFYhQLIQoJNOWsLOFMl-zOIQzg/exec";
     let corEscola = "#004aad"; 
-    let documentosGlobais = []; // Guarda os documentos para os filtros funcionarem
+    let documentosGlobais = []; 
 
     async function iniciarApp() {
         try {
@@ -142,7 +135,14 @@
                         iconeParaTitulo = ""; 
                     }
                     
-                    divBloco.onclick = () => abrirTela(botao["Aba de Destino"], botao["Tipo de Conteúdo"], (iconeParaTitulo ? iconeParaTitulo + " " : "") + botao["Nome do Botão"]);
+                    // LÓGICA NOVA PARA LINKS EXTERNOS
+                    if (botao["Tipo de Conteúdo"] === "Link Externo") {
+                        // Se for Link Externo, abre a URL em uma nova aba
+                        divBloco.onclick = () => window.open(botao["Aba de Destino"], '_blank');
+                    } else {
+                        // Se for tela normal, abre o conteúdo da planilha
+                        divBloco.onclick = () => abrirTela(botao["Aba de Destino"], botao["Tipo de Conteúdo"], (iconeParaTitulo ? iconeParaTitulo + " " : "") + botao["Nome do Botão"]);
+                    }
                     
                     divBloco.innerHTML = `
                         <div class="bloco-icone">${iconeConteudo}</div>
@@ -170,7 +170,6 @@
             if (tipoConteudo === "Avisos") {
                 desenharTelaAvisos(dados, container, tituloBotao);
             } else if (tipoConteudo === "Documentos") {
-                // Guarda os dados na variável global para o filtro usar
                 documentosGlobais = dados;
                 desenharTelaDocumentos(container, tituloBotao);
             } else {
@@ -197,18 +196,15 @@
         container.innerHTML = `<h2 class="titulo-tela">${tituloBotao}</h2>` + html;
     }
 
-    // A MÁGICA DOS FILTROS ACONTECE AQUI
     function desenharTelaDocumentos(container, tituloBotao) {
         if(documentosGlobais.length === 0) {
             container.innerHTML = `<h2 class="titulo-tela">${tituloBotao}</h2><p>Nenhum documento cadastrado.</p>`; return;
         }
 
-        // Pega as opções únicas que existem na sua planilha
         const anos = [...new Set(documentosGlobais.map(d => d["Ano Escolar"]).filter(Boolean))].sort();
         const componentes = [...new Set(documentosGlobais.map(d => d["Componente Curricular"]).filter(Boolean))].sort();
         const categorias = [...new Set(documentosGlobais.map(d => d["Categoria"]).filter(Boolean))].sort();
 
-        // Constrói os botões de Filtro
         let htmlFiltros = `
         <h2 class="titulo-tela">${tituloBotao}</h2>
         <div class="filtros-container" style="border-left: 4px solid ${corEscola}">
@@ -229,16 +225,14 @@
         `;
 
         container.innerHTML = htmlFiltros;
-        aplicarFiltrosDocumentos(); // Roda a função abaixo para mostrar a lista a primeira vez
+        aplicarFiltrosDocumentos();
     }
 
-    // Função ativada toda vez que o professor troca uma opção no filtro
     window.aplicarFiltrosDocumentos = function() {
         const valCat = document.getElementById('filtro-cat').value;
         const valAno = document.getElementById('filtro-ano').value;
         const valComp = document.getElementById('filtro-comp').value;
 
-        // Filtra a lista
         const docsFiltrados = documentosGlobais.filter(doc => {
             const matchCat = valCat === "Todos" || doc["Categoria"] === valCat;
             const matchAno = valAno === "Todos" || doc["Ano Escolar"] === valAno;
