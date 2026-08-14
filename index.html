@@ -252,8 +252,20 @@
             const dados = await resposta.json();
 
             if (tipoConteudo === "Documentos") {
-                documentosGlobais = dados;
+                
+                // --- A MÁGICA DO PRÉ-FILTRO ACONTECE AQUI ---
+                // O aplicativo lê o Nome do Botão e separa apenas as linhas com a mesma Categoria
+                let docsDaCategoria = dados.filter(doc => doc["Categoria"] && doc["Categoria"].toString().trim().toLowerCase() === tituloBotao.toString().trim().toLowerCase());
+                
+                // Se ele encontrar documentos da categoria exata, ele salva só eles. Se não encontrar, ele mostra todos para não dar erro.
+                if(docsDaCategoria.length > 0) {
+                    documentosGlobais = docsDaCategoria;
+                } else {
+                    documentosGlobais = dados;
+                }
+                
                 desenharTelaDocumentos(container, tituloBotao);
+                
             } else if (tipoConteudo === "Avisos") {
                  desenharTelaAvisos(dados, container, tituloBotao);
             } else {
@@ -278,7 +290,6 @@
     function desenharTelaDocumentos(container, tituloBotao) {
         if(documentosGlobais.length === 0) { container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem;">${tituloBotao}</h1><p>Nenhum documento.</p>`; return; }
 
-        // MÁGICA 1: Fatiador de Componentes (Separador de Vírgulas)
         let listaComponentesUnicos = [];
         documentosGlobais.forEach(d => {
             if (d["Componente Curricular"]) {
@@ -287,8 +298,9 @@
         });
         
         const anos = [...new Set(documentosGlobais.map(d => d["Ano Escolar"]).filter(Boolean))].sort();
-        const componentes = [...new Set(listaComponentesUnicos)].sort(); // Agora usa os componentes fatiados
+        const componentes = [...new Set(listaComponentesUnicos)].sort();
 
+        // O filtro de Categoria foi removido daqui para deixar a tela limpa, já que os botões já pré-filtram os arquivos!
         let htmlFiltros = `
         <h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px; letter-spacing: -0.5px;">${tituloBotao}</h1>
         <div class="filtros-container">
@@ -316,7 +328,6 @@
             let matchAno = valAno === "Todos" || doc["Ano Escolar"] === valAno;
             let matchComp = valComp === "Todos";
             
-            // MÁGICA 2: Filtro entende as vírgulas
             if (valComp !== "Todos" && doc["Componente Curricular"]) {
                 let arrayComponentes = doc["Componente Curricular"].split(',').map(c => c.trim());
                 matchComp = arrayComponentes.includes(valComp);
@@ -331,7 +342,6 @@
             docsFiltrados.forEach(doc => {
                 const linkTag = doc["Link do Google Drive"] ? `href="${doc["Link do Google Drive"]}" target="_blank"` : 'href="#"';
                 
-                // MÁGICA 3: Desenhando múltiplas etiquetas (Tags)
                 let tagsHTML = "";
                 if (doc["Ano Escolar"]) tagsHTML += `<span class="tag">${doc["Ano Escolar"]}</span>`;
                 if (doc["Componente Curricular"]) {
