@@ -25,7 +25,7 @@
         .bloco:active { transform: scale(0.95); background-color: #e2e6ea; }
         
         .bloco-icone { font-size: 3rem; margin-bottom: 15px; display: flex; justify-content: center; align-items: center; min-height: 70px; }
-        .bloco-icone img { width: 75px; height: 75px; object-fit: cover; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); border: 2px solid #fff; }
+        .bloco-icone img { width: 75px; height: 75px; object-fit: cover; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); border: 2px solid #fff; background: #fff;}
         .bloco-titulo { font-size: 1rem; font-weight: 600; color: #495057; }
         
         #tela-conteudo { display: none; padding: 20px; flex: 1; }
@@ -124,23 +124,24 @@
                     
                     let iconeConteudo = botao["Ícone"];
                     let iconeParaTitulo = botao["Ícone"];
+                    let strIcone = iconeConteudo ? iconeConteudo.toString().trim() : "";
                     
-                    if (iconeConteudo && iconeConteudo.toString().startsWith("http")) {
-                        let linkIcone = iconeConteudo;
+                    // NOVA REGRA: Aceita links (http) E nomes de arquivo (.png, .jpg) do GitHub
+                    if (strIcone.startsWith("http") || strIcone.toLowerCase().endsWith(".png") || strIcone.toLowerCase().endsWith(".jpg") || strIcone.toLowerCase().endsWith(".jpeg")) {
+                        let linkIcone = strIcone;
+                        // Tentativa de consertar link do Drive, se houver
                         const idMatch = linkIcone.match(/\/d\/(.*?)\//);
                         if (idMatch && idMatch[1]) {
                             linkIcone = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
                         }
-                        iconeConteudo = `<img src="${linkIcone}" alt="Capa">`;
+                        
+                        iconeConteudo = `<img src="${linkIcone}" alt="Capa" onerror="this.style.display='none'; this.parentNode.innerHTML='📂';">`;
                         iconeParaTitulo = ""; 
                     }
                     
-                    // LÓGICA NOVA PARA LINKS EXTERNOS
                     if (botao["Tipo de Conteúdo"] === "Link Externo") {
-                        // Se for Link Externo, abre a URL em uma nova aba
                         divBloco.onclick = () => window.open(botao["Aba de Destino"], '_blank');
                     } else {
-                        // Se for tela normal, abre o conteúdo da planilha
                         divBloco.onclick = () => abrirTela(botao["Aba de Destino"], botao["Tipo de Conteúdo"], (iconeParaTitulo ? iconeParaTitulo + " " : "") + botao["Nome do Botão"]);
                     }
                     
