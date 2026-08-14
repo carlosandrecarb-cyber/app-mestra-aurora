@@ -12,39 +12,39 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
         body { background-color: #f3f4f6; color: #1f2937; }
         
-        /* Menu Superior Oficial (Creme e Laranja do Portal) */
+        /* Menu Superior Oficial */
         .top-nav { background-color: #fdf6e9; padding: 15px 40px; display: flex; gap: 35px; border-bottom: 1px solid #f2e6d5; overflow-x: auto; white-space: nowrap; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
         .top-nav a { text-decoration: none; color: #d97706; font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s; }
         .top-nav a:hover { color: #b45309; transform: translateY(-1px); }
         
-        /* Hero Section (A fusão do Título Oficial com a Busca Moderna) */
-        .hero-section { background-color: #ffffff; padding: 60px 40px 80px 40px; display: flex; align-items: center; justify-content: space-between; gap: 40px; flex-wrap: wrap-reverse; position: relative; border-bottom: 1px solid #e5e7eb; }
+        /* Hero Section (Foco no Logo e Título) */
+        .hero-section { background-color: #ffffff; padding: 50px 40px 70px 40px; display: flex; align-items: flex-start; justify-content: space-between; gap: 40px; flex-wrap: wrap-reverse; position: relative; border-bottom: 1px solid #e5e7eb; }
         
-        .hero-content { flex: 1; min-width: 320px; max-width: 800px; z-index: 2; }
+        .hero-content { flex: 1; min-width: 320px; max-width: 900px; z-index: 2; }
+        
+        /* O Brasão Gigante Acima do Título */
+        #logo-escola { width: 100%; max-width: 170px; height: auto; object-fit: contain; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.08)); margin-bottom: 30px; display: block; }
         
         /* Saudação Dinâmica */
         .greeting { font-size: 1.2rem; font-weight: 600; color: #059669; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px;}
         
-        .hero-content h1 { font-size: 2.5rem; font-weight: 800; color: #111827; margin-bottom: 15px; line-height: 1.2; letter-spacing: -0.5px; }
-        .hero-content p { font-size: 1.1rem; color: #4b5563; line-height: 1.6; margin-bottom: 35px; }
+        .hero-content h1 { font-size: 2.6rem; font-weight: 800; color: #111827; margin-bottom: 15px; line-height: 1.2; letter-spacing: -0.5px; }
+        .hero-content p { font-size: 1.15rem; color: #4b5563; line-height: 1.6; margin-bottom: 35px; max-width: 800px; }
         
         /* Barra de Busca Flutuante */
-        .search-wrapper { background: #ffffff; border-radius: 12px; padding: 8px 20px; display: flex; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border: 2px solid #f3f4f6; transition: all 0.3s ease; max-width: 600px; }
+        .search-wrapper { background: #ffffff; border-radius: 12px; padding: 8px 20px; display: flex; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border: 2px solid #f3f4f6; transition: all 0.3s ease; max-width: 700px; }
         .search-wrapper:focus-within { border-color: #f59e0b; transform: translateY(-2px); box-shadow: 0 15px 35px rgba(245, 158, 11, 0.15); }
         .search-wrapper .material-symbols-rounded { color: #f59e0b; font-size: 1.6rem; margin-right: 10px; }
         .search-wrapper input { border: none; outline: none; width: 100%; padding: 12px 0; font-size: 1.05rem; color: #1f2937; font-weight: 500; }
         .search-wrapper input::placeholder { color: #9ca3af; font-weight: 400; }
         
-        /* Brasão Limpo à Direita */
-        #logo-escola { width: 180px; height: auto; object-fit: contain; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.1)); z-index: 2; }
-        
         /* Fundo decorativo sutil */
-        .hero-bg { position: absolute; right: 0; top: 0; width: 40%; height: 100%; background: linear-gradient(135deg, transparent 0%, rgba(245, 158, 11, 0.03) 100%); z-index: 1; }
+        .hero-bg { position: absolute; right: 0; top: 0; width: 30%; height: 100%; background: linear-gradient(135deg, transparent 0%, rgba(245, 158, 11, 0.04) 100%); z-index: 1; }
 
         /* Área dos Painéis (Abaixo do Hero) */
         .container { max-width: 1200px; margin: 0 auto; padding: 50px 40px; }
         
-        .section-title { font-size: 1.4rem; font-weight: 700; color: #111827; margin-bottom: 25px; display: flex; align-items: center; gap: 10px; }
+        .section-title { font-size: 1.4rem; font-weight: 700; color: #111827; margin-bottom: 25px; display: flex; align-items: center; gap: 10px; text-transform: uppercase; letter-spacing: 0.5px;}
         .section-title .material-symbols-rounded { color: #059669; background: #ecfdf5; padding: 8px; border-radius: 10px; }
         
         /* Cartões Modernos (EdTech Style) com toques Oficiais */
@@ -59,6 +59,7 @@
         
         .card-icon-box { width: 55px; height: 55px; border-radius: 14px; background: #fffbeb; color: #d97706; display: flex; justify-content: center; align-items: center; font-size: 2rem; flex-shrink: 0; border: 1px solid #fef3c7; }
         .card-icon-box img { width: 35px; height: 35px; object-fit: contain; }
+        .card-icon-box .material-symbols-rounded { font-size: 2rem; }
         
         .card-title { font-size: 1.15rem; font-weight: 700; color: #1f2937; line-height: 1.3;}
         .card-desc { font-size: 0.95rem; color: #6b7280; line-height: 1.5; margin-bottom: 15px; flex: 1; }
@@ -90,6 +91,7 @@
         
         @media (max-width: 768px) {
             .hero-section { padding: 40px 20px; text-align: center; justify-content: center; }
+            #logo-escola { margin: 0 auto 20px auto; }
             .greeting { justify-content: center; }
             .hero-content h1 { font-size: 2rem; }
             .search-wrapper { margin: 0 auto; }
@@ -100,34 +102,37 @@
 <body>
 
 <div id="app">
-    <!-- 1. Menu Superior Oficial -->
+    <!-- Menu Superior -->
     <div class="top-nav" id="dynamic-nav">
         <a href="#" onclick="voltarMenu()">INÍCIO</a>
     </div>
 
-    <!-- 2. Hero Section (A Fusão: Título, Busca e Logo) -->
+    <!-- Hero Section com Logo no Topo -->
     <div class="hero-section">
         <div class="hero-bg"></div>
         <div class="hero-content">
+            <img id="logo-escola" src="" alt="Brasão">
+            
             <div class="greeting" id="texto-saudacao"><span class="material-symbols-rounded">waving_hand</span> Olá!</div>
-            <h1 id="portal-title">O Portal de Dados está de cara nova!</h1>
+            
+            <!-- TÍTULO ATUALIZADO AQUI -->
+            <h1 id="portal-title">Portal de Dados</h1>
+            
             <p>Encontre documentos curriculares, painéis e resultados buscando pelo nome ou utilizando os módulos de acesso rápido abaixo.</p>
             
-            <!-- Busca Moderna Embutida no Cabeçalho -->
             <div class="search-wrapper">
                 <span class="material-symbols-rounded">search</span>
                 <input type="text" id="input-pesquisa" placeholder="Pesquisar painéis ou módulos..." onkeyup="filtrarModulos()">
             </div>
         </div>
-        
-        <img id="logo-escola" src="" alt="Brasão">
     </div>
 
     <div class="container">
         <!-- Tela Inicial: Módulos -->
         <div id="tela-inicial">
             <div class="section-title">
-                <span class="material-symbols-rounded">dashboard</span> Painéis Públicos
+                <!-- TÍTULO DA SEÇÃO ATUALIZADO AQUI -->
+                <span class="material-symbols-rounded">grid_view</span> Módulos de Acesso
             </div>
             
             <div id="menu-blocos">
@@ -173,7 +178,7 @@
                 document.getElementById('logo-escola').src = linkImagem;
                 
                 let nomeEscola = config["Nome da Escola"] || "EE Mestra Aurora";
-                document.getElementById('portal-title').innerText = `O Portal de Dados da ${nomeEscola} está de cara nova!`;
+                document.getElementById('portal-title').innerText = `Portal de Dados da ${nomeEscola}`;
             }
 
             const respostaMenu = await fetch(API_URL + "?aba=Menu_Configuracoes");
@@ -186,7 +191,6 @@
             if(dadosMenu.length === 0) {
                 containerMenu.innerHTML = "<p>Nenhum módulo configurado.</p>";
             } else {
-                // Alimenta o Menu Superior
                 dadosMenu.slice(0, 4).forEach(botao => {
                     let navLink = document.createElement('a');
                     navLink.href = "#";
@@ -199,20 +203,25 @@
                     topNav.appendChild(navLink);
                 });
 
-                // Alimenta os Cartões Modernos/Oficiais
                 dadosMenu.forEach(botao => {
                     const divBloco = document.createElement('a');
                     divBloco.className = 'modulo-card';
                     divBloco.setAttribute('data-nome', botao["Nome do Botão"].toLowerCase());
                     
-                    let strIcone = botao["Ícone"] ? botao["Ícone"].toString().trim() : "📊";
-                    let iconeRenderizado = strIcone;
+                    // Lógica Profissional de Ícones
+                    let strIcone = botao["Ícone"] ? botao["Ícone"].toString().trim() : "folder";
+                    let iconeRenderizado = "";
                     
                     if (strIcone.startsWith("http") || strIcone.toLowerCase().endsWith(".png") || strIcone.toLowerCase().endsWith(".jpg")) {
                         let link = strIcone;
                         const idMatch = link.match(/\/d\/(.*?)\//);
                         if (idMatch && idMatch[1]) link = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
                         iconeRenderizado = `<img src="${link}" alt="Ícone">`;
+                    } else if (/[a-zA-Z_]+/.test(strIcone) && strIcone.length > 2) {
+                        // Se o usuário digitou uma palavra (ex: 'notifications'), usa o ícone oficial do Google!
+                        iconeRenderizado = `<span class="material-symbols-rounded">${strIcone}</span>`;
+                    } else {
+                        iconeRenderizado = strIcone; // Fallback para emoji
                     }
                     
                     let isExterno = botao["Tipo de Conteúdo"] === "Link Externo";
@@ -228,12 +237,15 @@
                     let iconeAcao = isExterno ? "open_in_new" : "arrow_forward";
                     let textoAcao = isExterno ? "Acessar Portal" : "Abrir Módulo";
                     
+                    // Puxa a descrição personalizada se a coluna existir, senão usa uma neutra
+                    let textoDescricao = botao["Descrição"] ? botao["Descrição"] : `Acesse as informações e arquivos cadastrados no módulo de ${botao["Nome do Botão"].toLowerCase()}.`;
+                    
                     divBloco.innerHTML = `
                         <div class="card-header">
                             <div class="card-icon-box">${iconeRenderizado}</div>
                             <div class="card-title">${botao["Nome do Botão"]}</div>
                         </div>
-                        <div class="card-desc">Resultados, documentos e painéis referentes a ${botao["Nome do Botão"].toLowerCase()}.</div>
+                        <div class="card-desc">${textoDescricao}</div>
                         <div class="card-footer">
                             <span>${textoAcao}</span>
                             <span class="material-symbols-rounded">${iconeAcao}</span>
