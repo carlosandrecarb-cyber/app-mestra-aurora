@@ -3,59 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel - Escola</title>
+    <title>Painel Digital - Escola</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #f0f2f5; color: #333; display: flex; justify-content: center; }
-        #app { width: 100%; max-width: 480px; min-height: 100vh; background-color: #ffffff; box-shadow: 0 0 20px rgba(0,0,0,0.05); position: relative; }
+        
+        /* Deixando a tela bonita tanto no Celular quanto no Computador */
+        body { background-color: #f0f2f5; color: #333; display: flex; justify-content: center; padding: 0; }
+        @media (min-width: 768px) { body { padding: 30px; } } /* No PC ganha uma margem */
+        
+        #app { width: 100%; max-width: 900px; min-height: 100vh; background-color: #ffffff; box-shadow: 0 5px 25px rgba(0,0,0,0.1); position: relative; display: flex; flex-direction: column;}
+        @media (min-width: 768px) { #app { min-height: 85vh; border-radius: 20px; overflow: hidden; } } /* No PC fica com bordas redondas */
         
         /* Cabeçalho */
-        header { background-color: #004aad; color: white; padding: 20px; text-align: center; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: background-color 0.5s; }
+        header { background-color: #004aad; color: white; padding: 25px 20px; text-align: center; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: background-color 0.5s; }
         #logo-escola { width: 100%; max-width: 400px; height: auto; max-height: 130px; object-fit: contain; border-radius: 8px; margin-bottom: 12px; background-color: white; padding: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-        header h1 { font-size: 1.3rem; font-weight: 600; }
+        header h1 { font-size: 1.4rem; font-weight: 600; }
         
-        /* Menu Principal */
-        #menu-blocos { padding: 25px 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .bloco { background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 15px; padding: 25px 10px; text-align: center; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        /* Menu Principal (Agora se adapta ao tamanho da tela) */
+        #menu-blocos { padding: 30px 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; flex: 1; align-content: start; }
+        @media (min-width: 768px) { #menu-blocos { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; padding: 40px; } }
+        
+        .bloco { background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 15px; padding: 25px 10px; text-align: center; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .bloco:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.05); border-color: #dee2e6; }
         .bloco:active { transform: scale(0.95); background-color: #e2e6ea; }
         
-        /* Ajuste Mágico para aceitar Imagens como Ícones */
-        .bloco-icone { font-size: 2.8rem; margin-bottom: 12px; display: flex; justify-content: center; align-items: center; min-height: 60px; }
-        .bloco-icone img { width: 65px; height: 65px; object-fit: cover; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); border: 2px solid #fff; }
-        
-        .bloco-titulo { font-size: 0.95rem; font-weight: 600; color: #495057; }
+        /* Ajuste para aceitar Imagens como Ícones */
+        .bloco-icone { font-size: 3rem; margin-bottom: 15px; display: flex; justify-content: center; align-items: center; min-height: 70px; }
+        .bloco-icone img { width: 75px; height: 75px; object-fit: cover; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); border: 2px solid #fff; }
+        .bloco-titulo { font-size: 1rem; font-weight: 600; color: #495057; }
         
         /* Telas de Conteúdo */
-        #tela-conteudo { display: none; padding: 20px; }
-        .btn-voltar { background: none; border: none; font-size: 1rem; font-weight: 600; cursor: pointer; margin-bottom: 20px; display: flex; align-items: center; gap: 5px; }
-        .titulo-tela { font-size: 1.4rem; color: #212529; margin-bottom: 15px; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; }
+        #tela-conteudo { display: none; padding: 20px; flex: 1; }
+        @media (min-width: 768px) { #tela-conteudo { padding: 40px; } }
+        
+        .btn-voltar { background: none; border: none; font-size: 1rem; font-weight: 600; cursor: pointer; margin-bottom: 25px; display: flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 8px; transition: background 0.2s;}
+        .btn-voltar:hover { background: rgba(0,0,0,0.05); }
+        .titulo-tela { font-size: 1.6rem; color: #212529; margin-bottom: 20px; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; }
+        
+        /* Filtros Inteligentes (Novidade!) */
+        .filtros-container { display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap; background: #f8f9fa; padding: 15px; border-radius: 12px; border: 1px solid #e9ecef;}
+        .filtro-select { padding: 10px; border-radius: 8px; border: 1px solid #ced4da; flex: 1; min-width: 140px; font-size: 0.95rem; color: #495057; background-color: white; outline: none; transition: border-color 0.2s;}
+        .filtro-select:focus { border-color: #004aad; }
         
         /* Estilos dos Cartões */
-        .cartao-aviso { background-color: #fff; border-left: 4px solid #ffc107; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 8px; padding: 15px; margin-bottom: 15px; }
-        .aviso-data { display: block; font-size: 0.8rem; color: #6c757d; margin-bottom: 8px; font-weight: 600; }
-        .aviso-texto { font-size: 1rem; color: #333; line-height: 1.4; }
-        .aviso-link { display: inline-block; margin-top: 10px; font-size: 0.9rem; font-weight: 600; }
+        .cartao-aviso { background-color: #fff; border-left: 5px solid #ffc107; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-radius: 8px; padding: 18px; margin-bottom: 15px; transition: transform 0.2s; }
+        .cartao-aviso:hover { transform: translateX(5px); }
+        .aviso-data { display: block; font-size: 0.85rem; color: #6c757d; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
+        .aviso-texto { font-size: 1.05rem; color: #333; line-height: 1.5; }
+        .aviso-link { display: inline-block; margin-top: 12px; font-size: 0.95rem; font-weight: 600; text-decoration: none; padding: 8px 15px; background: rgba(0,0,0,0.05); border-radius: 6px; transition: background 0.2s;}
+        .aviso-link:hover { background: rgba(0,0,0,0.1); }
         
-        .cartao-doc { display: flex; align-items: center; background: #fff; padding: 15px; border-radius: 10px; border: 1px solid #e9ecef; margin-bottom: 12px; text-decoration: none; color: inherit; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.2s;}
-        .cartao-doc:active { background: #f8f9fa; transform: scale(0.98); }
-        .doc-icone { font-size: 2.2rem; margin-right: 15px; }
+        .cartao-doc { display: flex; align-items: center; background: #fff; padding: 18px; border-radius: 12px; border: 1px solid #e9ecef; margin-bottom: 12px; text-decoration: none; color: inherit; box-shadow: 0 2px 6px rgba(0,0,0,0.03); transition: all 0.2s ease;}
+        .cartao-doc:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.08); border-color: #dee2e6; }
+        .cartao-doc:active { transform: scale(0.98); }
+        .doc-icone { font-size: 2.5rem; margin-right: 18px; }
         .doc-info { flex: 1; }
-        .doc-titulo { font-weight: 600; font-size: 1rem; color: #333; margin-bottom: 5px; }
-        .doc-tags { font-size: 0.75rem; color: #6c757d; }
-        .tag { background: #e9ecef; padding: 3px 8px; border-radius: 12px; margin-right: 5px; display: inline-block; margin-bottom: 3px;}
+        .doc-titulo { font-weight: 600; font-size: 1.1rem; color: #212529; margin-bottom: 8px; }
+        .doc-tags { font-size: 0.8rem; color: #6c757d; display: flex; flex-wrap: wrap; gap: 5px;}
+        .tag { background: #e9ecef; padding: 4px 10px; border-radius: 15px; display: inline-flex; align-items: center; gap: 4px; font-weight: 500;}
         
-        #loading { text-align: center; padding: 50px; color: #6c757d; font-size: 1rem; grid-column: span 2;}
+        #loading { text-align: center; padding: 50px; color: #6c757d; font-size: 1.1rem; grid-column: 1 / -1;}
     </style>
 </head>
 <body>
 
 <div id="app">
     <header id="cabecalho">
-        <div id="loading-header">Carregando...</div>
+        <div id="loading-header">Carregando painel...</div>
     </header>
 
     <div id="menu-blocos">
-        <div id="loading">Conectando à planilha...</div>
+        <div id="loading">Conectando à secretaria digital...</div>
     </div>
 
     <div id="tela-conteudo">
@@ -67,6 +85,7 @@
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxfewC2cAeLK3ULrRcOP72E0KUqoteBNgw2TI5GUOl4WFYhQLIQoJNOWsLOFMl-zOIQzg/exec";
     let corEscola = "#004aad"; 
+    let documentosGlobais = []; // Guarda os documentos para os filtros funcionarem
 
     async function iniciarApp() {
         try {
@@ -104,7 +123,7 @@
             containerMenu.innerHTML = ""; 
 
             if(dadosMenu.length === 0) {
-                containerMenu.innerHTML = "<p style='grid-column: span 2; text-align:center;'>Adicione botões na planilha para começar.</p>";
+                containerMenu.innerHTML = "<p style='grid-column: 1/-1; text-align:center;'>Adicione botões na planilha para começar.</p>";
             } else {
                 dadosMenu.forEach(botao => {
                     const divBloco = document.createElement('div');
@@ -113,16 +132,14 @@
                     let iconeConteudo = botao["Ícone"];
                     let iconeParaTitulo = botao["Ícone"];
                     
-                    // A MÁGICA DOS ÍCONES DE CAPA COMEÇA AQUI
                     if (iconeConteudo && iconeConteudo.toString().startsWith("http")) {
                         let linkIcone = iconeConteudo;
-                        // Se a capa vier do Google Drive, nós fazemos o ajuste
                         const idMatch = linkIcone.match(/\/d\/(.*?)\//);
                         if (idMatch && idMatch[1]) {
                             linkIcone = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
                         }
                         iconeConteudo = `<img src="${linkIcone}" alt="Capa">`;
-                        iconeParaTitulo = ""; // Remove a imagem do título da próxima tela para não ficar estranho
+                        iconeParaTitulo = ""; 
                     }
                     
                     divBloco.onclick = () => abrirTela(botao["Aba de Destino"], botao["Tipo de Conteúdo"], (iconeParaTitulo ? iconeParaTitulo + " " : "") + botao["Nome do Botão"]);
@@ -135,7 +152,7 @@
                 });
             }
         } catch (erro) {
-            document.getElementById('menu-blocos').innerHTML = "<p style='grid-column: span 2; text-align:center;'>Erro de conexão.</p>";
+            document.getElementById('menu-blocos').innerHTML = "<p style='grid-column: 1/-1; text-align:center;'>Erro de conexão. Verifique sua internet.</p>";
         }
     }
 
@@ -144,63 +161,113 @@
         document.getElementById('tela-conteudo').style.display = 'block';
         
         const container = document.getElementById('conteudo-dinamico');
-        container.innerHTML = `<h2 class="titulo-tela">${tituloBotao}</h2><p style="text-align:center; color:#666;">Buscando dados na planilha...</p>`;
+        container.innerHTML = `<h2 class="titulo-tela">${tituloBotao}</h2><p style="text-align:center; color:#666; margin-top:30px;">Buscando dados na planilha...</p>`;
 
         try {
             const resposta = await fetch(API_URL + "?aba=" + nomeAba);
             const dados = await resposta.json();
 
             if (tipoConteudo === "Avisos") {
-                desenharTelaAvisos(dados, container);
+                desenharTelaAvisos(dados, container, tituloBotao);
             } else if (tipoConteudo === "Documentos") {
-                desenharTelaDocumentos(dados, container);
+                // Guarda os dados na variável global para o filtro usar
+                documentosGlobais = dados;
+                desenharTelaDocumentos(container, tituloBotao);
             } else {
-                container.innerHTML += `<p>O visual para "${tipoConteudo}" será construído em breve!</p>`;
+                container.innerHTML = `<h2 class="titulo-tela">${tituloBotao}</h2><p>O visual para "${tipoConteudo}" será construído em breve!</p>`;
             }
         } catch (erro) {
-            container.innerHTML += `<p>Erro ao buscar os dados.</p>`;
+            container.innerHTML += `<p style="color:red;">Erro ao buscar os dados.</p>`;
         }
     }
 
-    function desenharTelaAvisos(dados, container) {
+    function desenharTelaAvisos(dados, container, tituloBotao) {
         if(dados.length === 0) {
-            container.innerHTML += "<p>Nenhum aviso no momento.</p>"; return;
+            container.innerHTML = `<h2 class="titulo-tela">${tituloBotao}</h2><p>Nenhum aviso no momento.</p>`; return;
         }
         let html = "";
         dados.reverse().forEach(aviso => {
             html += `
             <div class="cartao-aviso" style="border-left-color: ${corEscola}">
-                <span class="aviso-data">📅 Publicado em: ${aviso["Data"] || ""}</span>
+                <span class="aviso-data">📅 ${aviso["Data"] || ""}</span>
                 <p class="aviso-texto">${aviso["Mensagem"] || ""}</p>
                 ${aviso["Link Anexo"] ? `<a href="${aviso["Link Anexo"]}" target="_blank" class="aviso-link" style="color:${corEscola}">📎 Abrir Documento</a>` : ''}
             </div>`;
         });
-        container.innerHTML = `<h2 class="titulo-tela">Últimas Novidades</h2>` + html;
+        container.innerHTML = `<h2 class="titulo-tela">${tituloBotao}</h2>` + html;
     }
 
-    function desenharTelaDocumentos(dados, container) {
-        if(dados.length === 0) {
-            container.innerHTML += "<p>Nenhum documento encontrado.</p>"; return;
+    // A MÁGICA DOS FILTROS ACONTECE AQUI
+    function desenharTelaDocumentos(container, tituloBotao) {
+        if(documentosGlobais.length === 0) {
+            container.innerHTML = `<h2 class="titulo-tela">${tituloBotao}</h2><p>Nenhum documento cadastrado.</p>`; return;
         }
-        let html = "";
-        dados.forEach(doc => {
-            const linkTag = doc["Link do Google Drive"] ? `href="${doc["Link do Google Drive"]}" target="_blank"` : 'href="#" onclick="alert(\'Link não disponível\')"';
-            
-            html += `
-            <a ${linkTag} class="cartao-doc">
-                <div class="doc-icone">📄</div>
-                <div class="doc-info">
-                    <div class="doc-titulo">${doc["Nome do Documento"] || "Documento sem nome"}</div>
-                    <div class="doc-tags">
-                        ${doc["Categoria"] ? `<span class="tag">📁 ${doc["Categoria"]}</span>` : ''}
-                        ${doc["Ano Escolar"] ? `<span class="tag">🎓 ${doc["Ano Escolar"]}</span>` : ''}
-                        ${doc["Componente Curricular"] ? `<span class="tag">🏷️ ${doc["Componente Curricular"]}</span>` : ''}
-                    </div>
-                </div>
-            </a>`;
-        });
-        container.innerHTML = `<h2 class="titulo-tela">Acervo Pedagógico</h2>` + html;
+
+        // Pega as opções únicas que existem na sua planilha
+        const anos = [...new Set(documentosGlobais.map(d => d["Ano Escolar"]).filter(Boolean))].sort();
+        const componentes = [...new Set(documentosGlobais.map(d => d["Componente Curricular"]).filter(Boolean))].sort();
+        const categorias = [...new Set(documentosGlobais.map(d => d["Categoria"]).filter(Boolean))].sort();
+
+        // Constrói os botões de Filtro
+        let htmlFiltros = `
+        <h2 class="titulo-tela">${tituloBotao}</h2>
+        <div class="filtros-container" style="border-left: 4px solid ${corEscola}">
+            <select id="filtro-cat" class="filtro-select" onchange="aplicarFiltrosDocumentos()" onfocus="this.style.borderColor='${corEscola}'" onblur="this.style.borderColor='#ced4da'">
+                <option value="Todos">📁 Todas Categorias</option>
+                ${categorias.map(c => `<option value="${c}">${c}</option>`).join('')}
+            </select>
+            <select id="filtro-ano" class="filtro-select" onchange="aplicarFiltrosDocumentos()" onfocus="this.style.borderColor='${corEscola}'" onblur="this.style.borderColor='#ced4da'">
+                <option value="Todos">🎓 Todos os Anos</option>
+                ${anos.map(a => `<option value="${a}">${a}</option>`).join('')}
+            </select>
+            <select id="filtro-comp" class="filtro-select" onchange="aplicarFiltrosDocumentos()" onfocus="this.style.borderColor='${corEscola}'" onblur="this.style.borderColor='#ced4da'">
+                <option value="Todos">🏷️ Todas as Matérias</option>
+                ${componentes.map(c => `<option value="${c}">${c}</option>`).join('')}
+            </select>
+        </div>
+        <div id="lista-documentos"></div>
+        `;
+
+        container.innerHTML = htmlFiltros;
+        aplicarFiltrosDocumentos(); // Roda a função abaixo para mostrar a lista a primeira vez
     }
+
+    // Função ativada toda vez que o professor troca uma opção no filtro
+    window.aplicarFiltrosDocumentos = function() {
+        const valCat = document.getElementById('filtro-cat').value;
+        const valAno = document.getElementById('filtro-ano').value;
+        const valComp = document.getElementById('filtro-comp').value;
+
+        // Filtra a lista
+        const docsFiltrados = documentosGlobais.filter(doc => {
+            const matchCat = valCat === "Todos" || doc["Categoria"] === valCat;
+            const matchAno = valAno === "Todos" || doc["Ano Escolar"] === valAno;
+            const matchComp = valComp === "Todos" || doc["Componente Curricular"] === valComp;
+            return matchCat && matchAno && matchComp;
+        });
+
+        let html = "";
+        if(docsFiltrados.length === 0) {
+            html = `<p style="text-align:center; color:#6c757d; padding:20px;">Nenhum documento encontrado com esses filtros.</p>`;
+        } else {
+            docsFiltrados.forEach(doc => {
+                const linkTag = doc["Link do Google Drive"] ? `href="${doc["Link do Google Drive"]}" target="_blank"` : 'href="#" onclick="alert(\\\'Link não disponível\\\')"';
+                html += `
+                <a ${linkTag} class="cartao-doc">
+                    <div class="doc-icone">📄</div>
+                    <div class="doc-info">
+                        <div class="doc-titulo">${doc["Nome do Documento"] || "Documento"}</div>
+                        <div class="doc-tags">
+                            ${doc["Categoria"] ? `<span class="tag">📁 ${doc["Categoria"]}</span>` : ''}
+                            ${doc["Ano Escolar"] ? `<span class="tag">🎓 ${doc["Ano Escolar"]}</span>` : ''}
+                            ${doc["Componente Curricular"] ? `<span class="tag">🏷️ ${doc["Componente Curricular"]}</span>` : ''}
+                        </div>
+                    </div>
+                </a>`;
+            });
+        }
+        document.getElementById('lista-documentos').innerHTML = html;
+    };
 
     function voltarMenu() {
         document.getElementById('tela-conteudo').style.display = 'none';
