@@ -164,8 +164,10 @@
     const formatarTextoLimpo = (txt) => txt ? txt.toString().replace(/([^\s-])-\s+([^\s-])/g, "$1$2").replace(/\s+/g, ' ').trim() : "";
     const normalizarCategoria = (txt) => txt ? txt.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase() : "";
 
+    // FUNÇÃO MELHORADA: Agora ela ignora acentos na hora de procurar a coluna certa na planilha!
     const getValue = (doc, keyword) => {
-        let key = Object.keys(doc).find(k => k.trim().toLowerCase().includes(keyword.toLowerCase()));
+        let normKeyword = normalizarCategoria(keyword);
+        let key = Object.keys(doc).find(k => normalizarCategoria(k).includes(normKeyword));
         return key ? doc[key] : null;
     };
     
@@ -336,16 +338,23 @@
             container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px; letter-spacing: -0.5px;">${tituloBotao}</h1>
             <div id="loading"><span class="material-symbols-rounded" style="font-size: 3rem; color: #f59e0b; display: block; margin-bottom: 10px;">analytics</span>Gerando Raio-X Pedagógico... Baixando base de dados do Estado...</div>`;
             try {
-                // Como nomeAba é "Resultados_Diagnostica", ele puxa os alunos primeiro
+                // Busca os alunos (da aba definida no botão, ex: Resultados_Diagnostica)
                 const respostaEst = await fetch(API_URL + "?aba=" + nomeAba);
                 const dadosEst = await respostaEst.json();
                 
                 let dadosHab = [];
                 try {
-                    // E obrigatoriamente ele puxa a aba das Habilidades
-                    const respostaHab = await fetch(API_URL + "?aba=Habilidades_Diagnostica");
+                    // Busca as habilidades (Procura primeiro pelo nome sugerido)
+                    let respostaHab = await fetch(API_URL + "?aba=Resultados_Habilidades");
                     dadosHab = await respostaHab.json();
-                } catch(e) { console.log("Aba Habilidades_Diagnostica vazia ou não encontrada."); }
+                    
+                    // Se estiver vazio, tenta com o nome alternativo que criamos agora
+                    if(dadosHab.length === 0 || dadosHab.error) {
+                        respostaHab = await fetch(API_URL + "?aba=Habilidades_Diagnostica");
+                        let altDados = await respostaHab.json();
+                        if(!altDados.error) dadosHab = altDados;
+                    }
+                } catch(e) { console.log("Aba de habilidades não encontrada."); }
 
                 desenharTelaDiagnostica(dadosHab, dadosEst, container, tituloBotao);
             } catch(e) { container.innerHTML += `<p style="color:red;">Falha ao conectar com o banco de dados.</p>`; }
@@ -377,23 +386,23 @@
     // ---------------------------------------------------------
     function desenharTelaDiagnostica(habilidades, estudantes, container, tituloBotao) {
         
-        diagHabilidadesGlobais = habilidades.filter(h => getValue(h, "POSIÇÃO") || getValue(h, "HABILIDADE"));
-        diagEstudantesGlobais = estudantes.filter(e => getValue(e, "Estudante") && getValue(e, "Turma"));
+        diagHabilidadesGlobais = habilidades.filter(h => getValue(h, "posição") || getValue(h, "habilidade"));
+        diagEstudantesGlobais = estudantes.filter(e => getValue(e, "estudante") && getValue(e, "turma"));
 
         if(diagEstudantesGlobais.length === 0) {
             container.innerHTML = `
             <h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1>
             <div style="background: white; padding: 50px 20px; border-radius: 12px; border: 1px solid #e5e7eb; text-align: center;">
                 <span class="material-symbols-rounded" style="font-size: 3.5rem; color: #d1d5db; margin-bottom: 15px; display: block;">cloud_off</span>
-                <p style="color: #4b5563; font-size: 1.15rem; font-weight: 600;">Planilhas do Estado não encontradas.</p>
-                <p style="color: #9ca3af; font-size: 0.95rem; margin-top: 8px;">Certifique-se de preencher as abas "Resultados_Diagnostica" e "Habilidades_Diagnostica".</p>
+                <p style="color: #4b5563; font-size: 1.15rem; font-weight: 600;">Planilhas de Estudantes vazias ou não encontradas.</p>
+                <p style="color: #9ca3af; font-size: 0.95rem; margin-top: 8px;">Copie os dados do Estado para a aba "Resultados_Diagnostica".</p>
             </div>`;
             return;
         }
 
-        const anos = [...new Set(diagEstudantesGlobais.map(d => formatarAno(getValue(d, "Ano escolar"))).filter(Boolean))].sort();
-        const componentes = [...new Set(diagEstudantesGlobais.map(d => formatarComp(getValue(d, "Componente Curricular"))).filter(Boolean))].sort();
-        const turmas = [...new Set(diagEstudantesGlobais.map(d => formatarTextoLimpo(getValue(d, "Turma"))).filter(Boolean))].sort();
+        const anos = [...new Set(diagEstudantesGlobais.map(d => formatarAno(getValue(d, "ano escolar"))).filter(Boolean))].sort();
+        const componentes = [...new Set(diagEstudantesGlobais.map(d => formatarComp(getValue(d, "componente curricular"))).filter(Boolean))].sort();
+        const turmas = [...new Set(diagEstudantesGlobais.map(d => formatarTextoLimpo(getValue(d, "turma"))).filter(Boolean))].sort();
 
         let html = `
         <h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px; letter-spacing: -0.5px;">${tituloBotao}</h1>
@@ -426,16 +435,16 @@
 
         // Filtra os Estudantes (Aba Resultados_Diagnostica)
         let estFiltrados = diagEstudantesGlobais.filter(e => {
-            let matchAno = valAno === "Todos" || formatarAno(getValue(e, "Ano escolar")) === valAno;
-            let matchComp = valComp === "Todos" || formatarComp(getValue(e, "Componente Curricular")) === valComp;
-            let matchTurma = valTurma === "Todas" || formatarTextoLimpo(getValue(e, "Turma")) === valTurma;
+            let matchAno = valAno === "Todos" || formatarAno(getValue(e, "ano escolar")) === valAno;
+            let matchComp = valComp === "Todos" || formatarComp(getValue(e, "componente curricular")) === valComp;
+            let matchTurma = valTurma === "Todas" || formatarTextoLimpo(getValue(e, "turma")) === valTurma;
             return matchAno && matchComp && matchTurma;
         });
 
         // Filtra as Habilidades (Aba Habilidades_Diagnostica)
         let habFiltradas = diagHabilidadesGlobais.filter(h => {
-            let matchAno = valAno === "Todos" || formatarAno(getValue(h, "ANO ESCOLAR")) === valAno;
-            let matchComp = valComp === "Todos" || formatarComp(getValue(h, "COMPONENTE CURRICULAR")) === valComp;
+            let matchAno = valAno === "Todos" || formatarAno(getValue(h, "ano escolar")) === valAno;
+            let matchComp = valComp === "Todos" || formatarComp(getValue(h, "componente curricular")) === valComp;
             return matchAno && matchComp;
         });
 
@@ -445,7 +454,7 @@
 
         if(totalEstudantes > 0) {
             let soma = estFiltrados.reduce((acc, curr) => {
-                let pct = parseFloat(getValue(curr, "Acerto (%)") || getValue(curr, "Acerto")) || 0;
+                let pct = parseFloat(getValue(curr, "acerto") || getValue(curr, "percentual")) || 0;
                 if (pct <= 50) emAlerta++; 
                 return acc + pct;
             }, 0);
@@ -494,14 +503,14 @@
         }
 
         // --- CONSTRUÇÃO DA LISTA DE HABILIDADES ---
-        habFiltradas.sort((a, b) => (parseFloat(getValue(a, "ACERTO")) || 0) - (parseFloat(getValue(b, "ACERTO")) || 0));
+        habFiltradas.sort((a, b) => (parseFloat(getValue(a, "acerto")) || 0) - (parseFloat(getValue(b, "acerto")) || 0));
 
         let htmlHab = "";
         habFiltradas.forEach((h, index) => {
-            let pos = getValue(h, "POSIÇÃO") || "H ?";
-            let desc = getValue(h, "DESCRIÇÃO") || "";
-            let pct = getValue(h, "ACERTO") || "0";
-            let faixa = (getValue(h, "FAIXA") || "").toLowerCase();
+            let pos = getValue(h, "posição") || "H ?";
+            let desc = getValue(h, "descrição") || "";
+            let pct = getValue(h, "acerto") || "0";
+            let faixa = (getValue(h, "faixa") || "").toLowerCase();
             
             let colorClass = "baixo";
             if(faixa.includes("baixo") && !faixa.includes("médio") && !faixa.includes("medio")) colorClass = "baixo";
@@ -512,7 +521,8 @@
             let estQueErraramHTML = "";
             
             // Puxa só a parte "H 01" da string (Ex: "H 01 (D005_CN)" vira "H 01")
-            let codHab = pos.split('(')[0].trim(); 
+            let codHabMatch = pos.match(/H\s*\d+/i);
+            let codHab = codHabMatch ? codHabMatch[0].replace(/\s+/g, ' ').trim() : null; 
             
             if(codHab && estFiltrados.length > 0) {
                 let erraram = estFiltrados.filter(e => {
@@ -527,12 +537,14 @@
                     <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #d1d5db; display:none;" id="hab-detalhe-${index}">
                         <div style="font-size: 0.85rem; color: #111827; font-weight: 700; margin-bottom: 5px;">Alunos que erraram a questão (${erraram.length}):</div>
                         <div style="font-size: 0.8rem; color: #4b5563; line-height: 1.5; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #f3f4f6;">
-                            ${erraram.map(e => `&bull; ${getValue(e, "Estudante")} (Turma ${getValue(e, "Turma")})`).join("<br>")}
+                            ${erraram.map(e => `&bull; ${getValue(e, "estudante")} (Turma ${getValue(e, "turma")})`).join("<br>")}
                         </div>
                     </div>`;
                 } else {
                     estQueErraramHTML = `<div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #d1d5db; font-size: 0.85rem; color: #047857; font-weight: 600; display:none;" id="hab-detalhe-${index}">Excelente! Nenhum aluno desta visão errou esta habilidade.</div>`;
                 }
+            } else if (estFiltrados.length === 0) {
+                estQueErraramHTML = `<div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #d1d5db; font-size: 0.85rem; color: #6b7280; display:none;" id="hab-detalhe-${index}">Aba de estudantes não conectada.</div>`;
             }
 
             htmlHab += `
@@ -546,18 +558,23 @@
             </div>`;
         });
         
-        if(habFiltradas.length === 0) htmlHab = "<p style='color:#6b7280; text-align:center;'>Nenhuma habilidade encontrada para este filtro.</p>";
+        if(habFiltradas.length === 0) {
+            htmlHab = `<div style="text-align:center; padding: 20px;">
+                <p style="color:#6b7280; margin-bottom:10px;">Nenhuma habilidade cadastrada para este componente.</p>
+                <p style="font-size:0.85rem; color:#9ca3af;">Verifique se os dados estão colados na aba "Habilidades_Diagnostica".</p>
+            </div>`;
+        }
         document.getElementById('lista-hab-criticas').innerHTML = htmlHab;
 
         // --- CONSTRUÇÃO DA LISTA DE ALUNOS ---
-        estFiltrados.sort((a, b) => (parseFloat(getValue(a, "Acerto (%)") || getValue(a, "Acerto")) || 0) - (parseFloat(getValue(b, "Acerto (%)") || getValue(b, "Acerto")) || 0));
+        estFiltrados.sort((a, b) => (parseFloat(getValue(a, "acerto") || getValue(a, "percentual")) || 0) - (parseFloat(getValue(b, "acerto") || getValue(b, "percentual")) || 0));
 
         let htmlEst = "";
         estFiltrados.forEach(e => {
-            let nome = getValue(e, "Estudante") || "Desconhecido";
-            let pct = parseFloat(getValue(e, "Acerto (%)") || getValue(e, "Acerto")) || 0;
+            let nome = getValue(e, "estudante") || "Desconhecido";
+            let pct = parseFloat(getValue(e, "acerto") || getValue(e, "percentual")) || 0;
             let faixa = (getValue(e, "desempenho") || "").toLowerCase();
-            let turma = getValue(e, "Turma") || "";
+            let turma = getValue(e, "turma") || "";
             
             let colorClass = "baixo";
             if(faixa.includes("baixo") && !faixa.includes("médio") && !faixa.includes("medio")) colorClass = "baixo";
@@ -582,7 +599,7 @@
     };
 
     // ---------------------------------------------------------
-    // OUTRAS TELAS MANTIDAS
+    // OUTRAS TELAS MANTIDAS (CURRÍCULO E DOCS)
     // ---------------------------------------------------------
     function desenharTelaCurriculo(container, tituloBotao) {
         if(curriculoGlobal.length === 0) { container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem;">${tituloBotao}</h1><p>Nenhuma habilidade cadastrada.</p>`; return; }
