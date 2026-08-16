@@ -64,7 +64,6 @@
         .filtro-select { padding: 12px 14px; border-radius: 8px; border: 1px solid #d1d5db; flex: 1; min-width: 160px; font-size: 0.95rem; color: #374151; font-weight: 500; outline: none; cursor: pointer; background: #f9fafb; transition: all 0.2s;}
         .filtro-select:focus { border-color: #f59e0b; background: white; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1); }
         
-        /* CSS Específico para Documentos vs Currículo */
         .cartao-doc { display: flex; align-items: center; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 15px; text-decoration: none; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);}
         .cartao-doc:hover { border-color: #059669; box-shadow: 0 8px 15px rgba(5, 150, 105, 0.08); transform: translateY(-2px);}
         .doc-icone { font-size: 2.2rem; margin-right: 20px; color: #9ca3af; }
@@ -135,7 +134,7 @@
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxfewC2cAeLK3ULrRcOP72E0KUqoteBNgw2TI5GUOl4WFYhQLIQoJNOWsLOFMl-zOIQzg/exec";
     let documentosGlobais = []; 
-    let curriculoGlobal = []; // NOVO: Armazena o banco de dados do CRMG separadamente
+    let curriculoGlobal = []; 
 
     function definirSaudacao() {
         const hora = new Date().getHours();
@@ -253,14 +252,12 @@
             const resposta = await fetch(API_URL + "?aba=" + nomeAba);
             const dados = await resposta.json();
 
-            // ROTEADOR DE TELAS INTELIGENTE
             if (tipoConteudo === "Documentos") {
                 let docsDaCategoria = dados.filter(doc => doc["Categoria"] && doc["Categoria"].toString().trim().toLowerCase() === tituloBotao.toString().trim().toLowerCase());
                 documentosGlobais = docsDaCategoria.length > 0 ? docsDaCategoria : dados;
                 desenharTelaDocumentos(container, tituloBotao);
                 
             } else if (tipoConteudo === "Currículo" || tipoConteudo === "Curriculo") {
-                // A NOVA ROTA PARA O CRMG
                 curriculoGlobal = dados;
                 desenharTelaCurriculo(container, tituloBotao);
                 
@@ -273,24 +270,29 @@
     }
 
     // ---------------------------------------------------------
-    // NOVA FUNÇÃO: MOTOR DE BUSCA DO CURRÍCULO (CRMG)
+    // MOTOR DE BUSCA DO CURRÍCULO (COM AS CORREÇÕES)
     // ---------------------------------------------------------
     function desenharTelaCurriculo(container, tituloBotao) {
         if(curriculoGlobal.length === 0) { container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem;">${tituloBotao}</h1><p>Nenhuma habilidade cadastrada.</p>`; return; }
 
-        const anos = [...new Set(curriculoGlobal.map(d => d["Ano Escolar"]).filter(Boolean))].sort();
-        const componentes = [...new Set(curriculoGlobal.map(d => d["Componente Curricular"]).filter(Boolean))].sort();
+        // MUDANÇA 1: Aplica .trim() para remover espaços falsos e limpa os itens.
+        const anos = [...new Set(curriculoGlobal.map(d => d["Ano Escolar"] ? d["Ano Escolar"].toString().trim() : null).filter(Boolean))].sort();
+        const componentes = [...new Set(curriculoGlobal.map(d => d["Componente Curricular"] ? d["Componente Curricular"].toString().trim() : null).filter(Boolean))].sort();
+
+        // MUDANÇA 1.1: Remove os cabeçalhos que vieram como "dados fantasma"
+        const anosLimpos = anos.filter(a => a.toLowerCase() !== "ano escolar");
+        const compLimpos = componentes.filter(c => c.toLowerCase() !== "componente curricular" && c.toLowerCase() !== "componente");
 
         let htmlFiltros = `
         <h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px; letter-spacing: -0.5px;">${tituloBotao}</h1>
         <div class="filtros-container">
             <select id="filtro-ano-curr" class="filtro-select" onchange="aplicarFiltrosCurriculo()">
                 <option value="Todos">🎓 Ano Escolar: Todos</option>
-                ${anos.map(a => `<option value="${a}">${a}</option>`).join('')}
+                ${anosLimpos.map(a => `<option value="${a}">${a}</option>`).join('')}
             </select>
             <select id="filtro-comp-curr" class="filtro-select" onchange="aplicarFiltrosCurriculo()">
                 <option value="Todos">🏷️ Componente: Todos</option>
-                ${componentes.map(c => `<option value="${c}">${c}</option>`).join('')}
+                ${compLimpos.map(c => `<option value="${c}">${c}</option>`).join('')}
             </select>
             <div class="search-wrapper" style="flex: 2; margin-bottom: 0; min-width: 280px; border-color: #d1d5db; box-shadow: none;">
                 <span class="material-symbols-rounded" style="color: #9ca3af; font-size: 1.2rem;">search</span>
@@ -310,8 +312,11 @@
         const valBusca = document.getElementById('busca-palavra-curr').value.toLowerCase().trim();
 
         const filtrados = curriculoGlobal.filter(doc => {
-            let matchAno = valAno === "Todos" || doc["Ano Escolar"] === valAno;
-            let matchComp = valComp === "Todos" || doc["Componente Curricular"] === valComp;
+            let anoDoc = doc["Ano Escolar"] ? doc["Ano Escolar"].toString().trim() : "";
+            let compDoc = doc["Componente Curricular"] ? doc["Componente Curricular"].toString().trim() : "";
+            
+            let matchAno = valAno === "Todos" || anoDoc === valAno;
+            let matchComp = valComp === "Todos" || compDoc === valComp;
             
             let textoCompleto = ((doc["Unidade Temática"] || "") + " " + (doc["Objeto de Conhecimento"] || "") + " " + (doc["Habilidade"] || "")).toLowerCase();
             let matchBusca = valBusca === "" || textoCompleto.includes(valBusca);
@@ -323,22 +328,30 @@
         if(filtrados.length === 0) { 
             html = `<p style="padding: 20px; color: #6b7280; text-align: center;">Nenhuma habilidade encontrada com estes filtros.</p>`; 
         } else {
-            // Limita a 150 resultados para a tela não travar se a base de dados for gigante
             let limite = filtrados.slice(0, 150);
-            
             html += `<p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 15px;">Mostrando ${limite.length} de ${filtrados.length} resultados encontrados.</p>`;
             
+            // MUDANÇA 2: Função mágica que localiza os "tracinhos" separados do PDF e junta as palavras
+            const consertarTexto = (txt) => txt ? txt.toString().replace(/([^\s-])-\s+([^\s-])/g, "$1$2") : "-";
+
             limite.forEach(doc => {
+                let anoFormatado = doc["Ano Escolar"] ? doc["Ano Escolar"].toString().trim() : "";
+                let compFormatado = doc["Componente Curricular"] ? doc["Componente Curricular"].toString().trim() : "";
+                
+                let unidade = consertarTexto(doc["Unidade Temática"]);
+                let objeto = consertarTexto(doc["Objeto de Conhecimento"]);
+                let habilidade = doc["Habilidade"] ? consertarTexto(doc["Habilidade"]) : "Descrição da habilidade não informada.";
+
                 html += `
                 <div class="cartao-curriculo">
                     <div class="doc-tags" style="margin-bottom: 10px;">
-                        ${doc["Ano Escolar"] ? `<span class="tag" style="background:#fef3c7; color:#d97706;">🎓 ${doc["Ano Escolar"]}</span>` : ''}
-                        ${doc["Componente Curricular"] ? `<span class="tag" style="background:#ecfdf5; color:#059669;">🏷️ ${doc["Componente Curricular"]}</span>` : ''}
+                        ${anoFormatado ? `<span class="tag" style="background:#fef3c7; color:#d97706;">🎓 ${anoFormatado}</span>` : ''}
+                        ${compFormatado ? `<span class="tag" style="background:#ecfdf5; color:#059669;">🏷️ ${compFormatado}</span>` : ''}
                     </div>
-                    <div class="curr-unidade"><span style="color:#d97706;">📍 Unidade Temática:</span> ${doc["Unidade Temática"] || "-"}</div>
-                    <div class="curr-objeto"><span class="material-symbols-rounded" style="font-size:1.2rem; color:#6b7280;">hub</span> Objeto de Conhecimento: ${doc["Objeto de Conhecimento"] || "-"}</div>
+                    <div class="curr-unidade"><span style="color:#d97706;">📍 Unidade Temática:</span> ${unidade}</div>
+                    <div class="curr-objeto"><span class="material-symbols-rounded" style="font-size:1.2rem; color:#6b7280;">hub</span> Objeto de Conhecimento: ${objeto}</div>
                     <div class="curr-habilidade">
-                        ${doc["Habilidade"] || "Descrição da habilidade não informada."}
+                        ${habilidade}
                     </div>
                 </div>`;
             });
@@ -347,7 +360,7 @@
     };
     // ---------------------------------------------------------
 
-    // Funções Antigas Mantidas Intactas
+    // Funções Antigas de Documentos e Avisos (Mantidas Exatamente Iguais)
     function desenharTelaAvisos(dados, container, tituloBotao) {
         if(dados.length === 0) { container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem;">${tituloBotao}</h1><p>Nenhum aviso no momento.</p>`; return; }
         let html = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 30px; letter-spacing: -0.5px;">${tituloBotao}</h1>`;
