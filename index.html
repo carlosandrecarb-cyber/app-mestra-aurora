@@ -165,8 +165,13 @@
 
     const getValue = (doc, keyword) => {
         let normKeyword = normalizarCategoria(keyword);
-        let key = Object.keys(doc).find(k => normalizarCategoria(k).includes(normKeyword));
-        return key ? doc[key] : null;
+        let keys = Object.keys(doc);
+        
+        let exactKey = keys.find(k => normalizarCategoria(k) === normKeyword);
+        if (exactKey) return doc[exactKey];
+        
+        let partialKey = keys.find(k => normalizarCategoria(k).includes(normKeyword));
+        return partialKey ? doc[partialKey] : null;
     };
     
     const consertarTexto = (txt) => {
@@ -327,7 +332,7 @@
         document.getElementById('tela-conteudo').style.display = 'block';
         const container = document.getElementById('conteudo-dinamico');
 
-        // MÁGICA DO RAIO-X ACONTECENDO AQUI (COM DETETIVE DE ERROS)
+        // MÁGICA DO RAIO-X COM TRADUTOR DE TURMAS
         if (tipoConteudo === "Painel_Diagnostica") {
             container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px; letter-spacing: -0.5px;">${tituloBotao}</h1>
             <div id="loading"><span class="material-symbols-rounded" style="font-size: 3rem; color: #f59e0b; display: block; margin-bottom: 10px;">analytics</span>Gerando Raio-X Pedagógico... Baixando base de dados do Estado...</div>`;
@@ -335,36 +340,34 @@
                 let urlEstudantes = API_URL + "?aba=" + encodeURIComponent(nomeAba.trim());
                 const respostaEst = await fetch(urlEstudantes);
                 const textoEst = await respostaEst.text(); 
-                
                 let dadosEst;
-                try {
-                    dadosEst = JSON.parse(textoEst);
-                } catch(err) {
-                    throw new Error("O Google não retornou dados válidos da aba " + nomeAba + ". Verifique se o nome está exato e sem espaços.");
-                }
-
+                try { dadosEst = JSON.parse(textoEst); } catch(err) { throw new Error("Aba de estudantes inválida."); }
                 if(dadosEst.error) throw new Error(dadosEst.error);
                 
                 let dadosHab = [];
                 try {
                     let urlHab = API_URL + "?aba=Habilidades_Diagnostica";
                     const respostaHab = await fetch(urlHab);
-                    const textoHab = await respostaHab.text();
-                    const jsonHab = JSON.parse(textoHab);
+                    let jsonHab = await respostaHab.json();
                     if(!jsonHab.error) dadosHab = jsonHab;
-                } catch(e) { console.log("Aba Habilidades_Diagnostica não processada perfeitamente."); }
+                } catch(e) {}
 
-                desenharTelaDiagnostica(dadosHab, dadosEst, container, tituloBotao);
+                // Baixa o dicionário de turmas
+                let dadosMapa = [];
+                try {
+                    let urlMapa = API_URL + "?aba=Mapa_Turmas";
+                    const respostaMapa = await fetch(urlMapa);
+                    let jsonMapa = await respostaMapa.json();
+                    if(!jsonMapa.error) dadosMapa = jsonMapa;
+                } catch(e) {}
+
+                desenharTelaDiagnostica(dadosHab, dadosEst, dadosMapa, container, tituloBotao);
             } catch(e) { 
                 container.innerHTML = `
                 <h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1>
                 <div style="background: #fee2e2; border-left: 5px solid #ef4444; padding: 25px; border-radius: 12px; margin-top: 20px;">
-                    <h3 style="color: #b91c1c; margin-bottom: 15px; font-size: 1.3rem;">Ops! Ocorreu um erro de leitura na Planilha.</h3>
+                    <h3 style="color: #b91c1c; margin-bottom: 15px; font-size: 1.3rem;">Ops! Erro de leitura na Planilha.</h3>
                     <p style="color: #7f1d1d; font-size: 1rem; margin-bottom: 15px; background: white; padding: 10px; border-radius: 8px;"><b>Motivo técnico:</b> ${e.message}</p>
-                    <p style="color: #991b1b; font-size: 1rem; line-height: 1.6;"><b>Verifique esses 3 passos na sua Planilha:</b><br>
-                    1. Lá no <b>Menu_Configuracoes</b>, a <i>Aba de Destino</i> deste botão precisa estar escrita exatamente <b>${nomeAba}</b> (sem espaços no final).<br>
-                    2. Verifique se a aba de estudantes se chama exatamente <b>${nomeAba}</b> e a aba de habilidades se chama <b>Habilidades_Diagnostica</b>.<br>
-                    3. <b>O ERRO MAIS COMUM:</b> Se você colou um arquivo <b>CSV</b> do governo, ele pode ter ficado todo grudado na Coluna A. Selecione a Coluna A, vá no menu do Google Sheets em <b>Dados > Dividir texto em colunas</b>.</p>
                 </div>`; 
             }
             return;
@@ -391,27 +394,51 @@
     }
 
     // ---------------------------------------------------------
-    // O NOVO RAIO-X PEDAGÓGICO
+    // O NOVO RAIO-X PEDAGÓGICO (COM O TRADUTOR DE TURMAS)
     // ---------------------------------------------------------
-    function desenharTelaDiagnostica(habilidades, estudantes, container, tituloBotao) {
+    function desenharTelaDiagnostica(habilidades, estudantes, mapa, container, tituloBotao) {
         
         diagHabilidadesGlobais = habilidades.filter(h => getValue(h, "posição") || getValue(h, "habilidade"));
-        diagEstudantesGlobais = estudantes.filter(e => getValue(e, "estudante") && getValue(e, "turma"));
+        let estBrutos = estudantes.filter(e => getValue(e, "estudante") && (getValue(e, "turma") || getValue(e, "código da turma")));
 
-        if(diagEstudantesGlobais.length === 0) {
+        if(estBrutos.length === 0) {
             container.innerHTML = `
             <h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1>
             <div style="background: white; padding: 50px 20px; border-radius: 12px; border: 1px solid #e5e7eb; text-align: center;">
                 <span class="material-symbols-rounded" style="font-size: 3.5rem; color: #d1d5db; margin-bottom: 15px; display: block;">cloud_off</span>
                 <p style="color: #4b5563; font-size: 1.15rem; font-weight: 600;">Planilha de Estudantes vazia ou com formato incorreto.</p>
-                <p style="color: #9ca3af; font-size: 0.95rem; margin-top: 8px;">Certifique-se de que os dados do Governo estão separados em colunas reais na planilha (Não podem ficar todos grudados na Coluna A).</p>
             </div>`;
             return;
         }
 
+        // --- O TRADUTOR DE TURMAS ENTRA EM AÇÃO AQUI ---
+        let mapaDict = {};
+        if(mapa && mapa.length > 0) {
+            mapa.forEach(m => {
+                let codAluno = getValue(m, "código") || getValue(m, "codigo");
+                let nomeAluno = getValue(m, "estudante") || getValue(m, "nome");
+                let nomeTurma = getValue(m, "turma");
+                
+                if(nomeTurma) {
+                    if(codAluno) mapaDict[codAluno.toString().trim().toUpperCase()] = nomeTurma.toString().trim();
+                    if(nomeAluno) mapaDict[nomeAluno.toString().trim().toUpperCase()] = nomeTurma.toString().trim();
+                }
+            });
+        }
+
+        // Substitui o código da turma pelo nome real (seja cruzando pela matrícula ou pelo nome)
+        diagEstudantesGlobais = estBrutos.map(e => {
+            let codigoGov = (getValue(e, "código da turma") || getValue(e, "turma") || "").toString().trim().toUpperCase();
+            let nomeGov = (getValue(e, "estudante") || "").toString().trim().toUpperCase();
+            
+            // Tenta achar a turma pelo código numérico, depois pelo nome. Se não achar nada, mostra o código cru.
+            e["turma_real_traduzida"] = mapaDict[codigoGov] || mapaDict[nomeGov] || "Turma " + codigoGov;
+            return e;
+        });
+
         const anos = [...new Set(diagEstudantesGlobais.map(d => formatarAno(getValue(d, "ano escolar"))).filter(Boolean))].sort();
         const componentes = [...new Set(diagEstudantesGlobais.map(d => formatarComp(getValue(d, "componente curricular"))).filter(Boolean))].sort();
-        const turmas = [...new Set(diagEstudantesGlobais.map(d => formatarTextoLimpo(getValue(d, "turma"))).filter(Boolean))].sort();
+        const turmas = [...new Set(diagEstudantesGlobais.map(d => d["turma_real_traduzida"]).filter(Boolean))].sort();
 
         let html = `
         <h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px; letter-spacing: -0.5px;">${tituloBotao}</h1>
@@ -442,15 +469,15 @@
         const valComp = document.getElementById('diag-comp').value;
         const valTurma = document.getElementById('diag-turma').value;
 
-        // Filtra os Estudantes (Aba Resultados_Diagnostica)
+        // Filtra os Estudantes
         let estFiltrados = diagEstudantesGlobais.filter(e => {
             let matchAno = valAno === "Todos" || formatarAno(getValue(e, "ano escolar")) === valAno;
             let matchComp = valComp === "Todos" || formatarComp(getValue(e, "componente curricular")) === valComp;
-            let matchTurma = valTurma === "Todas" || formatarTextoLimpo(getValue(e, "turma")) === valTurma;
+            let matchTurma = valTurma === "Todas" || e["turma_real_traduzida"] === valTurma;
             return matchAno && matchComp && matchTurma;
         });
 
-        // Filtra as Habilidades (Aba Habilidades_Diagnostica)
+        // Filtra as Habilidades
         let habFiltradas = diagHabilidadesGlobais.filter(h => {
             let matchAno = valAno === "Todos" || formatarAno(getValue(h, "ano escolar")) === valAno;
             let matchComp = valComp === "Todos" || formatarComp(getValue(h, "componente curricular")) === valComp;
@@ -483,7 +510,7 @@
                     <div style="font-size: 2.5rem; font-weight: 800; color: #059669;">${mediaAcertos}%</div>
                 </div>
                 <div style="flex:1; min-width:200px; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px rgba(0,0,0,0.02); text-align: center; border-bottom: 4px solid ${alertaColor};">
-                    <div style="font-size: 0.9rem; color: #6b7280; font-weight: 700; text-transform: uppercase;">Estudantes em Alerta</div>
+                    <div style="font-size: 0.9rem; color: #6b7280; font-weight: 700; text-transform: uppercase;">Estudantes em Alerta (< 50%)</div>
                     <div style="font-size: 2.5rem; font-weight: 800; color: ${alertaColor};">${emAlerta}</div>
                 </div>
             </div>
@@ -506,7 +533,7 @@
         document.getElementById('diag-dashboard').innerHTML = htmlDash;
 
         if(valComp === "Todos") {
-            document.getElementById('lista-hab-criticas').innerHTML = "<p style='color:#6b7280; text-align:center; padding: 20px;'>Selecione um Componente Curricular no filtro acima para ver as Habilidades Críticas.</p>";
+            document.getElementById('lista-hab-criticas').innerHTML = "<p style='color:#6b7280; text-align:center; padding: 20px;'>Selecione um Componente Curricular no filtro acima.</p>";
             document.getElementById('lista-est-alerta').innerHTML = "<p style='color:#6b7280; text-align:center; padding: 20px;'>Aguardando seleção do componente...</p>";
             return;
         }
@@ -528,7 +555,6 @@
             else if(faixa.includes("alto")) colorClass = "alto";
 
             let estQueErraramHTML = "";
-            
             let codHabMatch = pos.match(/H\s*\d+/i);
             let codHab = codHabMatch ? codHabMatch[0].replace(/\s+/g, ' ').trim() : null; 
             
@@ -537,22 +563,20 @@
                     let chaveExata = Object.keys(e).find(k => k.trim().toUpperCase() === codHab.toUpperCase());
                     if(!chaveExata) return false;
                     let nota = e[chaveExata].toString().trim();
-                    return nota.startsWith("0"); // Identifica o erro (0 / 1 ou 0 / 2)
+                    return nota.startsWith("0"); 
                 });
                 
                 if(erraram.length > 0) {
                     estQueErraramHTML = `
                     <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #d1d5db; display:none;" id="hab-detalhe-${index}">
-                        <div style="font-size: 0.85rem; color: #111827; font-weight: 700; margin-bottom: 5px;">Alunos que erraram (${erraram.length}):</div>
+                        <div style="font-size: 0.85rem; color: #111827; font-weight: 700; margin-bottom: 5px;">Alunos desta visão que erraram a questão (${erraram.length}):</div>
                         <div style="font-size: 0.8rem; color: #4b5563; line-height: 1.5; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #f3f4f6;">
-                            ${erraram.map(e => `&bull; ${getValue(e, "estudante")} (Turma ${getValue(e, "turma")})`).join("<br>")}
+                            ${erraram.map(e => `&bull; ${getValue(e, "estudante")} (${e["turma_real_traduzida"]})`).join("<br>")}
                         </div>
                     </div>`;
                 } else {
                     estQueErraramHTML = `<div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #d1d5db; font-size: 0.85rem; color: #047857; font-weight: 600; display:none;" id="hab-detalhe-${index}">Excelente! Nenhum aluno desta visão errou esta habilidade.</div>`;
                 }
-            } else if (estFiltrados.length === 0) {
-                estQueErraramHTML = `<div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #d1d5db; font-size: 0.85rem; color: #6b7280; display:none;" id="hab-detalhe-${index}">Aba de estudantes não conectada.</div>`;
             }
 
             htmlHab += `
@@ -567,10 +591,7 @@
         });
         
         if(habFiltradas.length === 0) {
-            htmlHab = `<div style="text-align:center; padding: 20px;">
-                <p style="color:#6b7280; margin-bottom:10px;">Nenhuma habilidade cadastrada para este componente.</p>
-                <p style="font-size:0.85rem; color:#9ca3af;">Verifique se você colou os dados do CAED/SIMAVE na aba "Habilidades_Diagnostica" e separou o texto em colunas.</p>
-            </div>`;
+            htmlHab = `<p style="color:#6b7280; text-align:center;">Nenhuma habilidade cadastrada para este componente.</p>`;
         }
         document.getElementById('lista-hab-criticas').innerHTML = htmlHab;
 
@@ -582,7 +603,7 @@
             let nome = getValue(e, "estudante") || "Desconhecido";
             let pct = parseFloat(getValue(e, "acerto") || getValue(e, "percentual")) || 0;
             let faixa = (getValue(e, "desempenho") || "").toLowerCase();
-            let turma = getValue(e, "turma") || "";
+            let turma = e["turma_real_traduzida"] || "";
             
             let colorClass = "baixo";
             if(faixa.includes("baixo") && !faixa.includes("médio") && !faixa.includes("medio")) colorClass = "baixo";
@@ -594,7 +615,7 @@
             <div class="diag-estudante">
                 <div>
                     <div style="font-weight: 700; font-size: 0.95rem; color: #1f2937;">${nome}</div>
-                    <div style="font-size: 0.8rem; color: #6b7280; margin-top: 2px;">Turma: ${turma}</div>
+                    <div style="font-size: 0.8rem; color: #6b7280; margin-top: 2px;">${turma}</div>
                 </div>
                 <div>
                     <div class="faixa-badge bg-${colorClass}">${pct}%</div>
