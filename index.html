@@ -609,19 +609,39 @@
             let pctGeral = getValue(est, "acerto") || getValue(est, "percentual") || 0;
             let compAluno = getValue(est, "componente curricular") || "Componente não informado";
             
-            let habilidadesDoEstudante = Object.keys(est).filter(k => k.trim().toUpperCase().startsWith('H '));
+            // Filtra colunas que começam com H e que possuem pontuação preenchida para este aluno/componente
+            let habilidadesDoEstudante = Object.keys(est).filter(k => {
+                let nomeCol = k.trim().toUpperCase();
+                let valorCol = est[k] ? est[k].toString().trim() : "";
+                return nomeCol.startsWith('H ') && valorCol !== "";
+            });
+            
             let htmlHabilidades = "";
             
             habilidadesDoEstudante.forEach(col => {
                 let statusNota = est[col] ? est[col].toString().trim() : "";
-                let codHab = col.trim().toUpperCase(); 
+                let codHab = col.trim().toUpperCase(); // Ex: "H 01"
                 
+                // CRUZA A HABILIDADE PELO CÓDIGO E TAMBÉM PELA DISCIPLINA CORRETA
                 let habInfo = diagHabilidadesGlobais.find(h => {
-                    let p = getValue(h, "posição") || "";
-                    return p.toUpperCase().includes(codHab);
+                    let p = (getValue(h, "posição") || getValue(h, "habilidade") || "").toUpperCase();
+                    let cHab = (getValue(h, "componente") || getValue(h, "componente curricular") || "").toUpperCase();
+                    
+                    let matchPos = p.includes(codHab);
+                    let matchComp = !cHab || cHab.includes(compAluno.toUpperCase()) || compAluno.toUpperCase().includes(cHab);
+                    
+                    return matchPos && matchComp;
                 });
 
-                let descHab = habInfo ? getValue(habInfo, "descrição") : "Descrição não encontrada";
+                // Se não achar cruzando a disciplina (ex: abreviações diferentes), pega pelo menos a posição
+                if (!habInfo) {
+                    habInfo = diagHabilidadesGlobais.find(h => {
+                        let p = (getValue(h, "posição") || getValue(h, "habilidade") || "").toUpperCase();
+                        return p.includes(codHab);
+                    });
+                }
+
+                let descHab = habInfo ? getValue(habInfo, "descrição") : "Descrição da habilidade não encontrada";
                 let acertou = statusNota.startsWith("1");
                 let corFundo = acertou ? "#ecfdf5" : "#fef2f2";
                 let corBorda = acertou ? "#10b981" : "#ef4444";
@@ -640,6 +660,10 @@
                     </div>
                 </div>`;
             });
+
+            if (habilidadesDoEstudante.length === 0) {
+                htmlHabilidades = "<p style='color: #6b7280; font-size: 0.9rem;'>Nenhum registro de habilidade detalhada para este componente.</p>";
+            }
 
             htmlCards += `
             <div style="margin-bottom: 30px; background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb;">
@@ -660,7 +684,7 @@
         `;
 
         container.innerHTML = htmlPerfil;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'smooth' };
     };
 
     function desenharTelaCurriculo(container, tituloBotao) {
