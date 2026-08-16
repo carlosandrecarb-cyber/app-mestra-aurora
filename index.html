@@ -60,10 +60,11 @@
         .btn-voltar { background: white; border: 1px solid #e5e7eb; color: #4b5563; font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-bottom: 30px; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 10px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);}
         .btn-voltar:hover { background: #f9fafb; color: #111827; border-color: #d1d5db; }
         
-        .filtros-container { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);}
-        .filtro-select { padding: 12px 16px; border-radius: 8px; border: 1px solid #d1d5db; flex: 1; min-width: 180px; font-size: 0.95rem; color: #374151; font-weight: 500; outline: none; cursor: pointer; background: #f9fafb; transition: all 0.2s;}
+        .filtros-container { display: flex; gap: 12px; margin-bottom: 30px; flex-wrap: wrap; background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);}
+        .filtro-select { padding: 12px 14px; border-radius: 8px; border: 1px solid #d1d5db; flex: 1; min-width: 160px; font-size: 0.95rem; color: #374151; font-weight: 500; outline: none; cursor: pointer; background: #f9fafb; transition: all 0.2s;}
         .filtro-select:focus { border-color: #f59e0b; background: white; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1); }
         
+        /* CSS Específico para Documentos vs Currículo */
         .cartao-doc { display: flex; align-items: center; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 15px; text-decoration: none; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);}
         .cartao-doc:hover { border-color: #059669; box-shadow: 0 8px 15px rgba(5, 150, 105, 0.08); transform: translateY(-2px);}
         .doc-icone { font-size: 2.2rem; margin-right: 20px; color: #9ca3af; }
@@ -72,6 +73,12 @@
         .doc-titulo { font-weight: 600; font-size: 1.1rem; color: #1f2937; margin-bottom: 8px; }
         .doc-tags { font-size: 0.8rem; display: flex; gap: 8px; flex-wrap: wrap; font-weight: 500;}
         .tag { background: #f3f4f6; color: #4b5563; padding: 4px 12px; border-radius: 6px; }
+
+        .cartao-curriculo { background: white; padding: 25px; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); transition: all 0.2s;}
+        .cartao-curriculo:hover { border-color: #f59e0b; }
+        .curr-unidade { font-weight: 700; color: #111827; margin-top: 10px; margin-bottom: 5px; font-size: 1.05rem;}
+        .curr-objeto { font-weight: 600; color: #4b5563; margin-bottom: 15px; font-size: 0.95rem; display: flex; align-items: center; gap: 5px;}
+        .curr-habilidade { background: #fdf8f6; padding: 18px; border-radius: 10px; border-left: 4px solid #f59e0b; color: #1f2937; line-height: 1.6; font-size: 1rem; }
 
         #loading { text-align: center; padding: 50px; color: #6b7280; font-size: 1.1rem; grid-column: 1 / -1; font-weight: 500;}
         
@@ -128,6 +135,7 @@
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxfewC2cAeLK3ULrRcOP72E0KUqoteBNgw2TI5GUOl4WFYhQLIQoJNOWsLOFMl-zOIQzg/exec";
     let documentosGlobais = []; 
+    let curriculoGlobal = []; // NOVO: Armazena o banco de dados do CRMG separadamente
 
     function definirSaudacao() {
         const hora = new Date().getHours();
@@ -140,7 +148,6 @@
 
     async function iniciarApp() {
         definirSaudacao();
-        
         try {
             const respostaConfig = await fetch(API_URL + "?aba=Configuracoes_Gerais");
             const dadosConfig = await respostaConfig.json();
@@ -151,9 +158,7 @@
                 const idMatch = linkImagem.match(/\/d\/(.*?)\//);
                 if (idMatch && idMatch[1]) { linkImagem = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`; }
                 document.getElementById('logo-escola').src = linkImagem;
-                
-                let nomeEscola = config["Nome da Escola"] || "EE Mestra Aurora";
-                document.getElementById('portal-title').innerText = `Portal de Dados da ${nomeEscola}`;
+                document.getElementById('portal-title').innerText = `Portal de Dados da ${config["Nome da Escola"] || "EE Mestra Aurora"}`;
             }
 
             const respostaMenu = await fetch(API_URL + "?aba=Menu_Configuracoes");
@@ -193,9 +198,7 @@
                         iconeRenderizado = `<img src="${link}" alt="Ícone">`;
                     } else if (/[a-zA-Z_]+/.test(strIcone) && strIcone.length > 2) {
                         iconeRenderizado = `<span class="material-symbols-rounded">${strIcone}</span>`;
-                    } else {
-                        iconeRenderizado = strIcone;
-                    }
+                    } else { iconeRenderizado = strIcone; }
                     
                     let isExterno = botao["Tipo de Conteúdo"] === "Link Externo";
                     
@@ -209,7 +212,7 @@
                     
                     let iconeAcao = isExterno ? "open_in_new" : "arrow_forward";
                     let textoAcao = isExterno ? "Acessar Portal" : "Abrir Módulo";
-                    let textoDescricao = botao["Descrição"] ? botao["Descrição"] : `Acesse as informações e arquivos cadastrados no módulo de ${botao["Nome do Botão"].toLowerCase()}.`;
+                    let textoDescricao = botao["Descrição"] ? botao["Descrição"] : `Acesse as informações cadastradas no módulo de ${botao["Nome do Botão"].toLowerCase()}.`;
                     
                     divBloco.innerHTML = `
                         <div class="card-header">
@@ -235,8 +238,7 @@
         let cards = document.getElementsByClassName('modulo-card');
         for (let i = 0; i < cards.length; i++) {
             let nome = cards[i].getAttribute('data-nome');
-            if (nome.includes(input)) { cards[i].style.display = "flex"; } 
-            else { cards[i].style.display = "none"; }
+            if (nome.includes(input)) { cards[i].style.display = "flex"; } else { cards[i].style.display = "none"; }
         }
     }
 
@@ -251,29 +253,101 @@
             const resposta = await fetch(API_URL + "?aba=" + nomeAba);
             const dados = await resposta.json();
 
+            // ROTEADOR DE TELAS INTELIGENTE
             if (tipoConteudo === "Documentos") {
-                
-                // --- A MÁGICA DO PRÉ-FILTRO ACONTECE AQUI ---
-                // O aplicativo lê o Nome do Botão e separa apenas as linhas com a mesma Categoria
                 let docsDaCategoria = dados.filter(doc => doc["Categoria"] && doc["Categoria"].toString().trim().toLowerCase() === tituloBotao.toString().trim().toLowerCase());
-                
-                // Se ele encontrar documentos da categoria exata, ele salva só eles. Se não encontrar, ele mostra todos para não dar erro.
-                if(docsDaCategoria.length > 0) {
-                    documentosGlobais = docsDaCategoria;
-                } else {
-                    documentosGlobais = dados;
-                }
-                
+                documentosGlobais = docsDaCategoria.length > 0 ? docsDaCategoria : dados;
                 desenharTelaDocumentos(container, tituloBotao);
+                
+            } else if (tipoConteudo === "Currículo" || tipoConteudo === "Curriculo") {
+                // A NOVA ROTA PARA O CRMG
+                curriculoGlobal = dados;
+                desenharTelaCurriculo(container, tituloBotao);
                 
             } else if (tipoConteudo === "Avisos") {
                  desenharTelaAvisos(dados, container, tituloBotao);
             } else {
-                container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1><p>Visual em construção.</p>`;
+                container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem;">${tituloBotao}</h1><p>Visual em construção para o tipo: ${tipoConteudo}</p>`;
             }
         } catch (erro) { container.innerHTML += `<p style="color:red;">Falha ao carregar.</p>`; }
     }
 
+    // ---------------------------------------------------------
+    // NOVA FUNÇÃO: MOTOR DE BUSCA DO CURRÍCULO (CRMG)
+    // ---------------------------------------------------------
+    function desenharTelaCurriculo(container, tituloBotao) {
+        if(curriculoGlobal.length === 0) { container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem;">${tituloBotao}</h1><p>Nenhuma habilidade cadastrada.</p>`; return; }
+
+        const anos = [...new Set(curriculoGlobal.map(d => d["Ano Escolar"]).filter(Boolean))].sort();
+        const componentes = [...new Set(curriculoGlobal.map(d => d["Componente Curricular"]).filter(Boolean))].sort();
+
+        let htmlFiltros = `
+        <h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px; letter-spacing: -0.5px;">${tituloBotao}</h1>
+        <div class="filtros-container">
+            <select id="filtro-ano-curr" class="filtro-select" onchange="aplicarFiltrosCurriculo()">
+                <option value="Todos">🎓 Ano Escolar: Todos</option>
+                ${anos.map(a => `<option value="${a}">${a}</option>`).join('')}
+            </select>
+            <select id="filtro-comp-curr" class="filtro-select" onchange="aplicarFiltrosCurriculo()">
+                <option value="Todos">🏷️ Componente: Todos</option>
+                ${componentes.map(c => `<option value="${c}">${c}</option>`).join('')}
+            </select>
+            <div class="search-wrapper" style="flex: 2; margin-bottom: 0; min-width: 280px; border-color: #d1d5db; box-shadow: none;">
+                <span class="material-symbols-rounded" style="color: #9ca3af; font-size: 1.2rem;">search</span>
+                <input type="text" id="busca-palavra-curr" placeholder="Buscar palavra-chave ou código..." onkeyup="aplicarFiltrosCurriculo()">
+            </div>
+        </div>
+        <div id="lista-curriculo"></div>
+        `;
+
+        container.innerHTML = htmlFiltros;
+        aplicarFiltrosCurriculo();
+    }
+
+    window.aplicarFiltrosCurriculo = function() {
+        const valAno = document.getElementById('filtro-ano-curr').value;
+        const valComp = document.getElementById('filtro-comp-curr').value;
+        const valBusca = document.getElementById('busca-palavra-curr').value.toLowerCase().trim();
+
+        const filtrados = curriculoGlobal.filter(doc => {
+            let matchAno = valAno === "Todos" || doc["Ano Escolar"] === valAno;
+            let matchComp = valComp === "Todos" || doc["Componente Curricular"] === valComp;
+            
+            let textoCompleto = ((doc["Unidade Temática"] || "") + " " + (doc["Objeto de Conhecimento"] || "") + " " + (doc["Habilidade"] || "")).toLowerCase();
+            let matchBusca = valBusca === "" || textoCompleto.includes(valBusca);
+            
+            return matchAno && matchComp && matchBusca;
+        });
+
+        let html = "";
+        if(filtrados.length === 0) { 
+            html = `<p style="padding: 20px; color: #6b7280; text-align: center;">Nenhuma habilidade encontrada com estes filtros.</p>`; 
+        } else {
+            // Limita a 150 resultados para a tela não travar se a base de dados for gigante
+            let limite = filtrados.slice(0, 150);
+            
+            html += `<p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 15px;">Mostrando ${limite.length} de ${filtrados.length} resultados encontrados.</p>`;
+            
+            limite.forEach(doc => {
+                html += `
+                <div class="cartao-curriculo">
+                    <div class="doc-tags" style="margin-bottom: 10px;">
+                        ${doc["Ano Escolar"] ? `<span class="tag" style="background:#fef3c7; color:#d97706;">🎓 ${doc["Ano Escolar"]}</span>` : ''}
+                        ${doc["Componente Curricular"] ? `<span class="tag" style="background:#ecfdf5; color:#059669;">🏷️ ${doc["Componente Curricular"]}</span>` : ''}
+                    </div>
+                    <div class="curr-unidade"><span style="color:#d97706;">📍 Unidade Temática:</span> ${doc["Unidade Temática"] || "-"}</div>
+                    <div class="curr-objeto"><span class="material-symbols-rounded" style="font-size:1.2rem; color:#6b7280;">hub</span> Objeto de Conhecimento: ${doc["Objeto de Conhecimento"] || "-"}</div>
+                    <div class="curr-habilidade">
+                        ${doc["Habilidade"] || "Descrição da habilidade não informada."}
+                    </div>
+                </div>`;
+            });
+        }
+        document.getElementById('lista-curriculo').innerHTML = html;
+    };
+    // ---------------------------------------------------------
+
+    // Funções Antigas Mantidas Intactas
     function desenharTelaAvisos(dados, container, tituloBotao) {
         if(dados.length === 0) { container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem;">${tituloBotao}</h1><p>Nenhum aviso no momento.</p>`; return; }
         let html = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 30px; letter-spacing: -0.5px;">${tituloBotao}</h1>`;
@@ -300,7 +374,6 @@
         const anos = [...new Set(documentosGlobais.map(d => d["Ano Escolar"]).filter(Boolean))].sort();
         const componentes = [...new Set(listaComponentesUnicos)].sort();
 
-        // O filtro de Categoria foi removido daqui para deixar a tela limpa, já que os botões já pré-filtram os arquivos!
         let htmlFiltros = `
         <h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px; letter-spacing: -0.5px;">${tituloBotao}</h1>
         <div class="filtros-container">
@@ -332,7 +405,6 @@
                 let arrayComponentes = doc["Componente Curricular"].split(',').map(c => c.trim());
                 matchComp = arrayComponentes.includes(valComp);
             }
-            
             return matchAno && matchComp;
         });
 
