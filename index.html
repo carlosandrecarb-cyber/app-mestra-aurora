@@ -81,7 +81,7 @@
 
         #loading { text-align: center; padding: 50px; color: #6b7280; font-size: 1.1rem; grid-column: 1 / -1; font-weight: 500;}
 
-        /* CSS TELA DE DIAGNÓSTICO E TRIMESTRAL */
+        /* CSS PAINÉIS */
         .diag-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;}
         @media (max-width: 768px) { .diag-grid { grid-template-columns: 1fr; } }
         .diag-card { background: #fff; border-radius: 12px; padding: 25px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
@@ -105,16 +105,6 @@
         .bg-alto { background: #d1fae5; color: #047857; }
         
         .perfil-card { background: white; padding: 30px; border-radius: 16px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px rgba(0,0,0,0.03); }
-        
-        @media (max-width: 768px) {
-            .hero-section { padding: 40px 20px; text-align: center; justify-content: center; }
-            #logo-escola { margin: 0 auto 20px auto; }
-            .greeting { justify-content: center; }
-            .hero-content h1 { font-size: 2rem; }
-            .search-wrapper { margin: 0 auto; }
-            .container { padding: 30px 20px; }
-            .filtro-select { min-width: 100%; }
-        }
     </style>
 </head>
 <body>
@@ -157,12 +147,9 @@
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxfewC2cAeLK3ULrRcOP72E0KUqoteBNgw2TI5GUOl4WFYhQLIQoJNOWsLOFMl-zOIQzg/exec";
     
-    // --- SISTEMA DE CACHE INTELIGENTE (ELIMINA LENTIDÃO) ---
     const cacheMemoria = {};
     async function baixarAba(nomeAba) {
-        if (cacheMemoria[nomeAba]) {
-            return cacheMemoria[nomeAba]; 
-        }
+        if (cacheMemoria[nomeAba]) return cacheMemoria[nomeAba]; 
         let url = API_URL + "?aba=" + encodeURIComponent(nomeAba.trim());
         const resposta = await fetch(url);
         const texto = await resposta.text();
@@ -177,10 +164,10 @@
     let diagHabilidadesGlobais = [];
     let diagEstudantesGlobais = [];
     let trimestralGlobal = [];
+    let externaGlobal = [];
 
     const formatarAno = (ano) => ano ? ano.toString().replace(/°/g, 'º').replace(/\s+/g, ' ').trim() : "";
     const formatarComp = (comp) => comp ? comp.toString().replace(/\s+/g, ' ').trim() : "";
-    const formatarTextoLimpo = (txt) => txt ? txt.toString().replace(/([^\s-])-\s+([^\s-])/g, "$1$2").replace(/\s+/g, ' ').trim() : "";
     const normalizarCategoria = (txt) => txt ? txt.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase() : "";
 
     const getValue = (doc, keyword) => {
@@ -192,12 +179,6 @@
         return partialKey ? doc[partialKey] : null;
     };
     
-    const consertarTexto = (txt) => {
-        if (!txt) return "";
-        let limpo = txt.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/([a-zA-Zá-úÁ-ÚçÇ])-\s+([a-zA-Zá-úÁ-ÚçÇ])/g, "$1$2"); 
-        return limpo.replace(/\n/g, "<br>");
-    };
-
     function definirSaudacao() {
         const hora = new Date().getHours();
         let saudacao = "Olá!";
@@ -254,7 +235,7 @@
 
                     let iconText = "grid_view";
                     if(nomeGrupo.toLowerCase().includes("pedag")) iconText = "school";
-                    else if(nomeGrupo.toLowerCase().includes("admin") || nomeGrupo.toLowerCase().includes("gestão") || nomeGrupo.toLowerCase().includes("gestao")) iconText = "admin_panel_settings";
+                    else if(nomeGrupo.toLowerCase().includes("admin") || nomeGrupo.toLowerCase().includes("gestão")) iconText = "admin_panel_settings";
                     else if(nomeGrupo.toLowerCase().includes("externo") || nomeGrupo.toLowerCase().includes("link")) iconText = "public";
                     else if(nomeGrupo.toLowerCase().includes("avalia") || nomeGrupo.toLowerCase().includes("resultado")) iconText = "monitoring";
                     else if(nomeGrupo.toLowerCase().includes("comunic")) iconText = "campaign";
@@ -276,7 +257,7 @@
                         let strIcone = botao["Ícone"] ? botao["Ícone"].toString().trim() : "folder";
                         let iconeRenderizado = "";
                         
-                        if (strIcone.startsWith("http") || strIcone.toLowerCase().endsWith(".png") || strIcone.toLowerCase().endsWith(".jpg")) {
+                        if (strIcone.startsWith("http") || strIcone.toLowerCase().endsWith(".png")) {
                             let link = strIcone;
                             const idMatch = link.match(/\/d\/(.*?)\//);
                             if (idMatch && idMatch[1]) link = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
@@ -286,7 +267,6 @@
                         } else { iconeRenderizado = strIcone; }
                         
                         let isExterno = botao["Tipo de Conteúdo"] === "Link Externo";
-                        
                         if (isExterno) {
                             divBloco.href = botao["Aba de Destino"];
                             divBloco.target = "_blank";
@@ -295,24 +275,19 @@
                             divBloco.onclick = (e) => { e.preventDefault(); abrirTela(botao["Aba de Destino"], botao["Tipo de Conteúdo"], botao["Nome do Botão"]); };
                         }
                         
-                        let iconeAcao = isExterno ? "open_in_new" : "arrow_forward";
-                        let textoAcao = isExterno ? "Acessar Portal" : "Abrir Módulo";
-                        let textoDescricao = botao["Descrição"] ? botao["Descrição"] : `Acesse as informações cadastradas no módulo de ${botao["Nome do Botão"].toLowerCase()}.`;
-                        
                         divBloco.innerHTML = `
                             <div class="card-header">
                                 <div class="card-icon-box">${iconeRenderizado}</div>
                                 <div class="card-title">${botao["Nome do Botão"]}</div>
                             </div>
-                            <div class="card-desc">${textoDescricao}</div>
+                            <div class="card-desc">${botao["Descrição"] || `Acesse o módulo de ${botao["Nome do Botão"].toLowerCase()}.`}</div>
                             <div class="card-footer">
-                                <span>${textoAcao}</span>
-                                <span class="material-symbols-rounded">${iconeAcao}</span>
+                                <span>${isExterno ? "Acessar Portal" : "Abrir Módulo"}</span>
+                                <span class="material-symbols-rounded">${isExterno ? "open_in_new" : "arrow_forward"}</span>
                             </div>
                         `;
                         grid.appendChild(divBloco);
                     });
-                    
                     containerGrupos.appendChild(divSecao);
                 }
             }
@@ -324,18 +299,13 @@
     function filtrarModulos() {
         let input = document.getElementById('input-pesquisa').value.toLowerCase();
         let grupos = document.getElementsByClassName('grupo-secao');
-        
         for (let i = 0; i < grupos.length; i++) {
             let cards = grupos[i].getElementsByClassName('modulo-card');
             let temVisivel = false;
             for (let j = 0; j < cards.length; j++) {
                 let nome = cards[j].getAttribute('data-nome');
-                if (nome.includes(input)) { 
-                    cards[j].style.display = "flex"; 
-                    temVisivel = true;
-                } else { 
-                    cards[j].style.display = "none"; 
-                }
+                if (nome.includes(input)) { cards[j].style.display = "flex"; temVisivel = true; } 
+                else { cards[j].style.display = "none"; }
             }
             grupos[i].style.display = temVisivel ? "block" : "none";
         }
@@ -346,44 +316,45 @@
         document.getElementById('tela-conteudo').style.display = 'block';
         const container = document.getElementById('conteudo-dinamico');
 
-        // PAINEL DE DIAGNÓSTICO (RAIO-X)
         if (tipoConteudo === "Painel_Diagnostica") {
             container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1>
-            <div id="loading"><span class="material-symbols-rounded" style="font-size: 3rem; color: #f59e0b; display: block; margin-bottom: 10px;">analytics</span>Carregando Raio-X Pedagógico...</div>`;
+            <div id="loading"><span class="material-symbols-rounded" style="font-size: 3rem; color: #f59e0b; display: block; margin-bottom: 10px;">analytics</span>Carregando Raio-X Diagnóstico...</div>`;
             try {
                 let dadosEst = await baixarAba(nomeAba.trim());
                 let dadosHab = [];
                 try { dadosHab = await baixarAba("Habilidades_Diagnostica"); } catch(e) {}
                 let dadosMapa = [];
                 try { dadosMapa = await baixarAba("Mapa_Turmas"); } catch(e) {}
-
                 desenharTelaDiagnostica(dadosHab, dadosEst, dadosMapa, container, tituloBotao);
-            } catch(e) { 
-                container.innerHTML = `<div style="background: #fee2e2; border-left: 5px solid #ef4444; padding: 25px; border-radius: 12px;"><h3 style="color: #b91c1c;">Erro ao carregar diagnóstico.</h3><p>${e.message}</p></div>`; 
-            }
+            } catch(e) { container.innerHTML = `<div style="background: #fee2e2; padding: 25px; border-radius: 12px;"><h3 style="color: #b91c1c;">Erro</h3><p>${e.message}</p></div>`; }
             return;
         }
 
-        // PAINEL TRIMESTRAL (NOVO)
         if (tipoConteudo === "Painel_Trimestral") {
             container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1>
             <div id="loading"><span class="material-symbols-rounded" style="font-size: 3rem; color: #f59e0b; display: block; margin-bottom: 10px;">assessment</span>Carregando Painel Trimestral...</div>`;
             try {
                 let dadosTrim = await baixarAba(nomeAba.trim());
                 desenharTelaTrimestral(dadosTrim, container, tituloBotao);
-            } catch(e) {
-                container.innerHTML = `<div style="background: #fee2e2; border-left: 5px solid #ef4444; padding: 25px; border-radius: 12px;"><h3 style="color: #b91c1c;">Erro ao carregar dados trimestrais.</h3><p>${e.message}</p></div>`;
-            }
+            } catch(e) { container.innerHTML = `<div style="background: #fee2e2; padding: 25px; border-radius: 12px;"><h3 style="color: #b91c1c;">Erro</h3><p>${e.message}</p></div>`; }
+            return;
+        }
+
+        if (tipoConteudo === "Painel_Externa") {
+            container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1>
+            <div id="loading"><span class="material-symbols-rounded" style="font-size: 3rem; color: #f59e0b; display: block; margin-bottom: 10px;">query_stats</span>Carregando Avaliação Externa (PROEB)...</div>`;
+            try {
+                let dadosExt = await baixarAba(nomeAba.trim());
+                desenharTelaExterna(dadosExt, container, tituloBotao);
+            } catch(e) { container.innerHTML = `<div style="background: #fee2e2; padding: 25px; border-radius: 12px;"><h3 style="color: #b91c1c;">Erro</h3><p>${e.message}</p></div>`; }
             return;
         }
 
         container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1><div id="loading">Sincronizando dados...</div>`;
         try {
             const dados = await baixarAba(nomeAba);
-
             if (tipoConteudo === "Documentos") {
-                let docsDaCategoria = dados.filter(doc => doc["Categoria"] && normalizarCategoria(doc["Categoria"]) === normalizarCategoria(tituloBotao));
-                documentosGlobais = docsDaCategoria; 
+                documentosGlobais = dados.filter(doc => doc["Categoria"] && normalizarCategoria(doc["Categoria"]) === normalizarCategoria(tituloBotao)); 
                 desenharTelaDocumentos(container, tituloBotao);
             } else if (tipoConteudo === "Currículo" || tipoConteudo === "Curriculo") {
                 curriculoGlobal = dados;
@@ -397,145 +368,118 @@
     }
 
     // ---------------------------------------------------------
-    // MOTOR DO PAINEL TRIMESTRAL
+    // MOTOR DO PAINEL DE AVALIAÇÃO EXTERNA (PROEB - POR DESCRITORES)
     // ---------------------------------------------------------
-    function desenharTelaTrimestral(dados, container, tituloBotao) {
-        trimestralGlobal = dados.filter(d => getValue(d, "habilidade") && getValue(d, "percentual de acerto"));
+    function desenharTelaExterna(dados, container, tituloBotao) {
+        externaGlobal = dados.filter(d => getValue(d, "descritor") && getValue(d, "percentual de acerto"));
 
-        if(trimestralGlobal.length === 0) {
-            container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1><div style="background: white; padding: 40px; border-radius: 12px; text-align: center;"><p style="color: #4b5563; font-weight: 600;">Nenhum dado encontrado na aba Resultados_Trimestral.</p></div>`;
+        if(externaGlobal.length === 0) {
+            container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1><div style="background: white; padding: 40px; border-radius: 12px; text-align: center;"><p style="color: #4b5563; font-weight: 600;">Nenhum dado encontrado na aba Resultados_Externa.</p></div>`;
             return;
         }
 
-        const anos = [...new Set(trimestralGlobal.map(d => formatarAno(getValue(d, "ano escolar"))).filter(Boolean))].sort();
-        const componentes = [...new Set(trimestralGlobal.map(d => formatarComp(getValue(d, "componente curricular"))).filter(Boolean))].sort();
-        const turmas = [...new Set(trimestralGlobal.map(d => formatarTextoLimpo(getValue(d, "turma"))).filter(Boolean))].sort();
+        const edicoes = [...new Set(externaGlobal.map(d => (getValue(d, "edição")||"").toString().trim()).filter(Boolean))].sort();
+        const anos = [...new Set(externaGlobal.map(d => formatarAno(getValue(d, "ano escolar"))).filter(Boolean))].sort();
+        const componentes = [...new Set(externaGlobal.map(d => formatarComp(getValue(d, "componente curricular"))).filter(Boolean))].sort();
 
         let html = `
         <h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px; letter-spacing: -0.5px;">${tituloBotao}</h1>
         <div class="filtros-container">
-            <select id="trim-ano" class="filtro-select" onchange="aplicarFiltrosTrimestral()">
+            <select id="ext-edicao" class="filtro-select" onchange="aplicarFiltrosExterna()">
+                <option value="Todos">📅 Edição: Todas</option>
+                ${edicoes.map(e => `<option value="${e}">${e}</option>`).join('')}
+            </select>
+            <select id="ext-ano" class="filtro-select" onchange="aplicarFiltrosExterna()">
                 <option value="Todos">🎓 Ano Escolar: Todos</option>
                 ${anos.map(a => `<option value="${a}">${a}</option>`).join('')}
             </select>
-            <select id="trim-comp" class="filtro-select" onchange="aplicarFiltrosTrimestral()">
+            <select id="ext-comp" class="filtro-select" onchange="aplicarFiltrosExterna()">
                 <option value="Todos">🏷️ Componente: Todos</option>
                 ${componentes.map(c => `<option value="${c}">${c}</option>`).join('')}
             </select>
-            <select id="trim-turma" class="filtro-select" onchange="aplicarFiltrosTrimestral()">
-                <option value="Todas">🏫 Visão: Escola Inteira (Consolidado)</option>
-                ${turmas.map(t => `<option value="${t}">Filtrar por Turma: ${t}</option>`).join('')}
-            </select>
         </div>
-        <div id="trim-dashboard"></div>
+        <div id="ext-dashboard"></div>
         `;
 
         container.innerHTML = html;
-        if(componentes.length > 0) document.getElementById('trim-comp').value = componentes[0];
-        aplicarFiltrosTrimestral();
+        if(componentes.length > 0) document.getElementById('ext-comp').value = componentes[0];
+        aplicarFiltrosExterna();
     }
 
-    window.aplicarFiltrosTrimestral = function() {
-        const valAno = document.getElementById('trim-ano').value;
-        const valComp = document.getElementById('trim-comp').value;
-        const valTurma = document.getElementById('trim-turma').value;
+    window.aplicarFiltrosExterna = function() {
+        const valEd = document.getElementById('ext-edicao').value;
+        const valAno = document.getElementById('ext-ano').value;
+        const valComp = document.getElementById('ext-comp').value;
 
-        let filtrados = trimestralGlobal.filter(d => {
+        let filtrados = externaGlobal.filter(d => {
+            let matchEd = valEd === "Todos" || (getValue(d, "edição")||"").toString().trim() === valEd;
             let matchAno = valAno === "Todos" || formatarAno(getValue(d, "ano escolar")) === valAno;
             let matchComp = valComp === "Todos" || formatarComp(getValue(d, "componente curricular")) === valComp;
-            let matchTurma = valTurma === "Todas" || formatarTextoLimpo(getValue(d, "turma")) === valTurma;
-            return matchAno && matchComp && matchTurma;
+            return matchEd && matchAno && matchComp;
         });
 
-        let mapaHabilidades = {};
-        filtrados.forEach(d => {
-            let hab = getValue(d, "habilidade").toString().trim();
-            let acerto = parseFloat(getValue(d, "percentual de acerto")) || 0;
-            let faixa = getValue(d, "faixa de acerto") || "Baixo";
-            let turma = getValue(d, "turma") || "";
+        // Ordena descritores do pior acerto para o melhor
+        filtrados.sort((a, b) => (parseFloat(getValue(a, "percentual de acerto")) || 0) - (parseFloat(getValue(b, "percentual de acerto")) || 0));
 
-            if (!mapaHabilidades[hab]) {
-                mapaHabilidades[hab] = { habilidade: hab, somaAcerto: 0, count: 0, faixa: faixa, turmasDetran: [] };
-            }
-            mapaHabilidades[hab].somaAcerto += acerto;
-            mapaHabilidades[hab].count += 1;
-            mapaHabilidades[hab].turmasDetran.push({ turma: turma, acerto: acerto, faixa: faixa });
-        });
-
-        let listaConsolidada = Object.values(mapaHabilidades).map(item => {
-            let media = item.somaAcerto / item.count;
-            return {
-                habilidade: item.habilidade,
-                acertoMedio: media.toFixed(1),
-                faixa: item.count === 1 ? item.turmasDetran[0].faixa : ( media < 40 ? "Baixo" : media < 60 ? "Médio Baixo" : "Médio Alto" ),
-                turmasDetran: item.turmasDetran
-            };
-        });
-
-        listaConsolidada.sort((a, b) => parseFloat(a.acertoMedio) - parseFloat(b.acertoMedio));
-
-        let totalHab = listaConsolidada.length;
-        let mediaGeral = 0;
-        if(totalHab > 0) {
-            let somaGeral = listaConsolidada.reduce((acc, curr) => acc + parseFloat(curr.acertoMedio), 0);
-            mediaGeral = (somaGeral / totalHab).toFixed(1);
+        let totalDesc = filtrados.length;
+        let mediaAcertos = 0;
+        if(totalDesc > 0) {
+            let soma = filtrados.reduce((acc, curr) => acc + (parseFloat(getValue(curr, "percentual de acerto")) || 0), 0);
+            mediaAcertos = (soma / totalDesc).toFixed(1);
         }
 
         let htmlDash = `
             <div style="display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap;">
                 <div style="flex:1; min-width:220px; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px rgba(0,0,0,0.02); text-align: center; border-bottom: 4px solid #3b82f6;">
-                    <div style="font-size: 0.9rem; color: #6b7280; font-weight: 700; text-transform: uppercase;">Total de Habilidades</div>
-                    <div style="font-size: 2.5rem; font-weight: 800; color: #111827;">${totalHab}</div>
+                    <div style="font-size: 0.9rem; color: #6b7280; font-weight: 700; text-transform: uppercase;">Total de Descritores</div>
+                    <div style="font-size: 2.5rem; font-weight: 800; color: #111827;">${totalDesc}</div>
                 </div>
                 <div style="flex:1; min-width:220px; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px rgba(0,0,0,0.02); text-align: center; border-bottom: 4px solid #059669;">
-                    <div style="font-size: 0.9rem; color: #6b7280; font-weight: 700; text-transform: uppercase;">Média Trimestral</div>
-                    <div style="font-size: 2.5rem; font-weight: 800; color: #059669;">${mediaGeral}%</div>
+                    <div style="font-size: 0.9rem; color: #6b7280; font-weight: 700; text-transform: uppercase;">Média de Acertos (Descritores)</div>
+                    <div style="font-size: 2.5rem; font-weight: 800; color: #059669;">${mediaAcertos}%</div>
                 </div>
             </div>
 
-            <div class="diag-card" style="margin-bottom: 30px;">
-                <div class="diag-header"><span class="material-symbols-rounded" style="color: #f59e0b;">assignment</span> Ranking de Habilidades (Trimestre)</div>
-                <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 20px;">Habilidades ordenadas da mais crítica para a melhor. <b>Clique em uma habilidade para ver o desempenho detalhado por turma.</b></p>
-                <div id="lista-hab-trimestre"></div>
+            <div class="diag-card">
+                <div class="diag-header"><span class="material-symbols-rounded" style="color: #ef4444;">assignment_late</span> Mapa de Descritores Críticos</div>
+                <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 20px;">Descritores avaliados na prova externa ordenados do menor percentual de acerto para o maior.</p>
+                <div id="lista-descritores"></div>
             </div>
         `;
 
-        document.getElementById('trim-dashboard').innerHTML = htmlDash;
+        document.getElementById('ext-dashboard').innerHTML = htmlDash;
 
-        let htmlHab = "";
-        listaConsolidada.forEach((item, index) => {
-            let faixaLower = item.faixa.toLowerCase();
+        let htmlDesc = "";
+        filtrados.forEach(d => {
+            let nomeDesc = getValue(d, "nome descritor") || "D?";
+            let descTexto = getValue(d, "descritor") || "";
+            let pct = parseFloat(getValue(d, "percentual de acerto")) || 0;
+            let faixa = (getValue(d, "faixa de acerto") || "").toLowerCase();
+
             let colorClass = "baixo";
-            if(faixaLower.includes("baixo") && !faixaLower.includes("médio")) colorClass = "baixo";
-            else if(faixaLower.includes("médio baixo") || faixaLower.includes("medio baixo")) colorClass = "medio-baixo";
-            else if(faixaLower.includes("médio") || faixaLower.includes("medio")) colorClass = "medio";
-            else if(faixaLower.includes("alto")) colorClass = "alto";
+            if(faixa.includes("baixo") && !faixa.includes("médio")) colorClass = "baixo";
+            else if(faixa.includes("médio baixo") || faixa.includes("medio baixo")) colorClass = "medio-baixo";
+            else if(faixa.includes("médio") || faixa.includes("medio")) colorClass = "medio";
+            else if(faixa.includes("alto")) colorClass = "alto";
 
-            let turmasDetalheHtml = item.turmasDetran.map(t => `&bull; <b>${t.turma}:</b> ${t.acerto.toFixed(1)}% (${t.faixa})`).join("<br>");
-
-            htmlHab += `
-            <div class="diag-habilidade ${colorClass}" style="cursor: pointer;" onclick="document.getElementById('trim-detalhe-${index}').style.display = document.getElementById('trim-detalhe-${index}').style.display === 'none' ? 'block' : 'none'">
+            htmlDesc += `
+            <div class="diag-habilidade ${colorClass}">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div style="font-weight: 700; font-size: 0.95rem; color: #1f2937; flex: 1; padding-right: 15px;">${item.habilidade}</div>
-                    <div class="faixa-badge bg-${colorClass}">${item.acertoMedio}%</div>
+                    <div style="font-weight: 800; font-size: 1rem; color: #1f2937;">${nomeDesc}</div>
+                    <div class="faixa-badge bg-${colorClass}">${pct.toFixed(1)}%</div>
                 </div>
-                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e5e7eb; display: none;" id="trim-detalhe-${index}">
-                    <div style="font-size: 0.8rem; color: #4b5563; line-height: 1.6;">
-                        <b>Desempenho por Turma:</b><br>
-                        ${turmasDetalheHtml}
-                    </div>
-                </div>
+                <div style="font-size: 0.9rem; color: #4b5563; margin-top: 8px; line-height: 1.5;">${descTexto}</div>
             </div>`;
         });
 
-        if(listaConsolidada.length === 0) {
-            htmlHab = "<p style='color:#6b7280; text-align:center; padding: 20px;'>Nenhuma habilidade encontrada para os filtros selecionados.</p>";
+        if(filtrados.length === 0) {
+            htmlDesc = "<p style='color:#6b7280; text-align:center; padding: 20px;'>Nenhum descritor encontrado para os filtros selecionados.</p>";
         }
-        document.getElementById('lista-hab-trimestre').innerHTML = htmlHab;
+        document.getElementById('lista-descritores').innerHTML = htmlDesc;
     };
 
     // ---------------------------------------------------------
-    // MOTOR DO RAIO-X DIAGNÓSTICO (MANTIDO COMPLETO)
+    // DEMAIS PAINÉIS (DIAGNÓSTICO, TRIMESTRAL, ETC. MANTIDOS)
     // ---------------------------------------------------------
     function desenharTelaDiagnostica(habilidades, estudantes, mapa, container, tituloBotao) {
         diagHabilidadesGlobais = habilidades.filter(h => getValue(h, "posição") || getValue(h, "habilidade"));
@@ -671,9 +615,9 @@
             let faixa = (getValue(h, "faixa") || "").toLowerCase();
             
             let colorClass = "baixo";
-            if(faixa.includes("baixo") && !faixa.includes("médio") && !faixa.includes("medio")) colorClass = "baixo";
-            else if(faixa.includes("médio baixo") || faixa.includes("medio baixo")) colorClass = "medio-baixo";
-            else if(faixa.includes("médio") || faixa.includes("medio")) colorClass = "medio";
+            if(faixa.includes("baixo") && !faixa.includes("médio")) colorClass = "baixo";
+            else if(faixa.includes("médio baixo")) colorClass = "medio-baixo";
+            else if(faixa.includes("médio")) colorClass = "medio";
             else if(faixa.includes("alto")) colorClass = "alto";
 
             let estQueErraramHTML = "";
@@ -702,7 +646,7 @@
             }
 
             htmlHab += `
-            <div class="diag-habilidade ${colorClass}" style="cursor: pointer;" onclick="document.getElementById('hab-detalhe-${index}').style.display = document.getElementById('hab-detalhe-${index}').style.display === 'none' ? 'block' : 'none'">
+            <div class="diag-habilidade ${colorClass}" style="cursor: pointer;" onclick="document.getElementById('hab-detalhe-${index}').style.display = document.getElementById('trim-detalhe-${index}')?.style.display === 'none' ? 'block' : 'none'">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div style="font-weight: 800; font-size: 1rem; color: #1f2937;">${pos}</div>
                     <div class="faixa-badge bg-${colorClass}">${pct}%</div>
@@ -725,9 +669,9 @@
             let turma = e["turma_real_traduzida"] || "";
             
             let colorClass = "baixo";
-            if(faixa.includes("baixo") && !faixa.includes("médio") && !faixa.includes("medio")) colorClass = "baixo";
-            else if(faixa.includes("médio baixo") || faixa.includes("medio baixo")) colorClass = "medio-baixo";
-            else if(faixa.includes("médio") || faixa.includes("medio")) colorClass = "medio";
+            if(faixa.includes("baixo") && !faixa.includes("médio")) colorClass = "baixo";
+            else if(faixa.includes("médio baixo")) colorClass = "medio-baixo";
+            else if(faixa.includes("médio")) colorClass = "medio";
             else if(faixa.includes("alto")) colorClass = "alto";
 
             let nomeSafe = nome.replace(/'/g, "\\'");
@@ -828,6 +772,136 @@
 
         container.innerHTML = htmlPerfil;
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    function desenharTelaTrimestral(dados, container, tituloBotao) {
+        trimestralGlobal = dados.filter(d => getValue(d, "habilidade") && getValue(d, "percentual de acerto"));
+        if(trimestralGlobal.length === 0) {
+            container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1><div style="background: white; padding: 40px; border-radius: 12px; text-align: center;"><p style="color: #4b5563; font-weight: 600;">Nenhum dado encontrado na aba Resultados_Trimestral.</p></div>`;
+            return;
+        }
+
+        const anos = [...new Set(trimestralGlobal.map(d => formatarAno(getValue(d, "ano escolar"))).filter(Boolean))].sort();
+        const componentes = [...new Set(trimestralGlobal.map(d => formatarComp(getValue(d, "componente curricular"))).filter(Boolean))].sort();
+        const turmas = [...new Set(trimestralGlobal.map(d => formatarTextoLimpo(getValue(d, "turma"))).filter(Boolean))].sort();
+
+        let html = `
+        <h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1>
+        <div class="filtros-container">
+            <select id="trim-ano" class="filtro-select" onchange="aplicarFiltrosTrimestral()">
+                <option value="Todos">🎓 Ano Escolar: Todos</option>
+                ${anos.map(a => `<option value="${a}">${a}</option>`).join('')}
+            </select>
+            <select id="trim-comp" class="filtro-select" onchange="aplicarFiltrosTrimestral()">
+                <option value="Todos">🏷️ Componente: Todos</option>
+                ${componentes.map(c => `<option value="${c}">${c}</option>`).join('')}
+            </select>
+            <select id="trim-turma" class="filtro-select" onchange="aplicarFiltrosTrimestral()">
+                <option value="Todas">🏫 Visão: Escola Inteira (Consolidado)</option>
+                ${turmas.map(t => `<option value="${t}">Filtrar por Turma: ${t}</option>`).join('')}
+            </select>
+        </div>
+        <div id="trim-dashboard"></div>
+        `;
+        container.innerHTML = html;
+        if(componentes.length > 0) document.getElementById('trim-comp').value = componentes[0];
+        aplicarFiltrosTrimestral();
+    }
+
+    window.aplicarFiltrosTrimestral = function() {
+        const valAno = document.getElementById('trim-ano').value;
+        const valComp = document.getElementById('trim-comp').value;
+        const valTurma = document.getElementById('trim-turma').value;
+
+        let filtrados = trimestralGlobal.filter(d => {
+            let matchAno = valAno === "Todos" || formatarAno(getValue(d, "ano escolar")) === valAno;
+            let matchComp = valComp === "Todos" || formatarComp(getValue(d, "componente curricular")) === valComp;
+            let matchTurma = valTurma === "Todas" || formatarTextoLimpo(getValue(d, "turma")) === valTurma;
+            return matchAno && matchComp && matchTurma;
+        });
+
+        let mapaHabilidades = {};
+        filtrados.forEach(d => {
+            let hab = getValue(d, "habilidade").toString().trim();
+            let acerto = parseFloat(getValue(d, "percentual de acerto")) || 0;
+            let faixa = getValue(d, "faixa de acerto") || "Baixo";
+            let turma = getValue(d, "turma") || "";
+
+            if (!mapaHabilidades[hab]) {
+                mapaHabilidades[hab] = { habilidade: hab, somaAcerto: 0, count: 0, faixa: faixa, turmasDetran: [] };
+            }
+            mapaHabilidades[hab].somaAcerto += acerto;
+            mapaHabilidades[hab].count += 1;
+            mapaHabilidades[hab].turmasDetran.push({ turma: turma, acerto: acerto, faixa: faixa });
+        });
+
+        let listaConsolidada = Object.values(mapaHabilidades).map(item => {
+            let media = item.somaAcerto / item.count;
+            return {
+                habilidade: item.habilidade,
+                acertoMedio: media.toFixed(1),
+                faixa: item.count === 1 ? item.turmasDetran[0].faixa : ( media < 40 ? "Baixo" : media < 60 ? "Médio Baixo" : "Médio Alto" ),
+                turmasDetran: item.turmasDetran
+            };
+        });
+
+        listaConsolidada.sort((a, b) => parseFloat(a.acertoMedio) - parseFloat(b.acertoMedio));
+
+        let totalHab = listaConsolidada.length;
+        let mediaGeral = 0;
+        if(totalHab > 0) {
+            let somaGeral = listaConsolidada.reduce((acc, curr) => acc + parseFloat(curr.acertoMedio), 0);
+            mediaGeral = (somaGeral / totalHab).toFixed(1);
+        }
+
+        let htmlDash = `
+            <div style="display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap;">
+                <div style="flex:1; min-width:220px; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px rgba(0,0,0,0.02); text-align: center; border-bottom: 4px solid #3b82f6;">
+                    <div style="font-size: 0.9rem; color: #6b7280; font-weight: 700; text-transform: uppercase;">Total de Habilidades</div>
+                    <div style="font-size: 2.5rem; font-weight: 800; color: #111827;">${totalHab}</div>
+                </div>
+                <div style="flex:1; min-width:220px; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px rgba(0,0,0,0.02); text-align: center; border-bottom: 4px solid #059669;">
+                    <div style="font-size: 0.9rem; color: #6b7280; font-weight: 700; text-transform: uppercase;">Média Trimestral</div>
+                    <div style="font-size: 2.5rem; font-weight: 800; color: #059669;">${mediaGeral}%</div>
+                </div>
+            </div>
+
+            <div class="diag-card" style="margin-bottom: 30px;">
+                <div class="diag-header"><span class="material-symbols-rounded" style="color: #f59e0b;">assignment</span> Ranking de Habilidades (Trimestre)</div>
+                <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 20px;">Habilidades ordenadas da mais crítica para a melhor. <b>Clique em uma habilidade para ver o desempenho detalhado por turma.</b></p>
+                <div id="lista-hab-trimestre"></div>
+            </div>
+        `;
+        document.getElementById('trim-dashboard').innerHTML = htmlDash;
+
+        let htmlHab = "";
+        listaConsolidada.forEach((item, index) => {
+            let faixaLower = item.faixa.toLowerCase();
+            let colorClass = "baixo";
+            if(faixaLower.includes("baixo") && !faixaLower.includes("médio")) colorClass = "baixo";
+            else if(faixaLower.includes("médio baixo")) colorClass = "medio-baixo";
+            else if(faixaLower.includes("médio")) colorClass = "medio";
+            else if(faixaLower.includes("alto")) colorClass = "alto";
+
+            let turmasDetalheHtml = item.turmasDetran.map(t => `&bull; <b>${t.turma}:</b> ${t.acerto.toFixed(1)}% (${t.faixa})`).join("<br>");
+
+            htmlHab += `
+            <div class="diag-habilidade ${colorClass}" style="cursor: pointer;" onclick="document.getElementById('trim-detalhe-${index}').style.display = document.getElementById('trim-detalhe-${index}').style.display === 'none' ? 'block' : 'none'">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="font-weight: 700; font-size: 0.95rem; color: #1f2937; flex: 1; padding-right: 15px;">${item.habilidade}</div>
+                    <div class="faixa-badge bg-${colorClass}">${item.acertoMedio}%</div>
+                </div>
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e5e7eb; display: none;" id="trim-detalhe-${index}">
+                    <div style="font-size: 0.8rem; color: #4b5563; line-height: 1.6;">
+                        <b>Desempenho por Turma:</b><br>
+                        ${turmasDetalheHtml}
+                    </div>
+                </div>
+            </div>`;
+        });
+
+        if(listaConsolidada.length === 0) htmlHab = "<p style='color:#6b7280; text-align:center; padding: 20px;'>Nenhuma habilidade encontrada.</p>";
+        document.getElementById('lista-hab-trimestre').innerHTML = htmlHab;
     };
 
     function desenharTelaCurriculo(container, tituloBotao) {
