@@ -37,7 +37,7 @@
         .section-title { font-size: 1.4rem; font-weight: 700; color: #111827; margin-bottom: 25px; display: flex; align-items: center; gap: 10px; text-transform: uppercase; letter-spacing: 0.5px;}
         .section-title .material-symbols-rounded { color: #059669; background: #ecfdf5; padding: 8px; border-radius: 10px; }
         
-        #menu-blocos { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
+        .menu-blocos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
         
         .modulo-card { background: #ffffff; border-radius: 16px; padding: 25px; display: flex; flex-direction: column; text-decoration: none; color: inherit; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden; }
         .modulo-card::before { content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 4px; background: #f59e0b; opacity: 0; transition: opacity 0.3s; }
@@ -61,7 +61,7 @@
         .btn-voltar:hover { background: #f9fafb; color: #111827; border-color: #d1d5db; }
         
         .filtros-container { display: flex; gap: 12px; margin-bottom: 30px; flex-wrap: wrap; background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);}
-        .filtro-select { padding: 12px 14px; border-radius: 8px; border: 1px solid #d1d5db; flex: 1; min-width: 160px; font-size: 0.95rem; color: #374151; font-weight: 500; outline: none; cursor: pointer; background: #f9fafb; transition: all 0.2s;}
+        .filtro-select { padding: 12px 14px; border-radius: 8px; border: 1px solid #d1d5db; flex: 1; min-width: 220px; font-size: 0.95rem; color: #374151; font-weight: 500; outline: none; cursor: pointer; background: #f9fafb; transition: all 0.2s;}
         .filtro-select:focus { border-color: #f59e0b; background: white; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1); }
         
         .cartao-doc { display: flex; align-items: center; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 15px; text-decoration: none; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);}
@@ -115,10 +115,7 @@
 
     <div class="container">
         <div id="tela-inicial">
-            <div class="section-title">
-                <span class="material-symbols-rounded">grid_view</span> Módulos de Acesso
-            </div>
-            <div id="menu-blocos">
+            <div id="container-grupos">
                 <div id="loading">Sincronizando banco de dados...</div>
             </div>
         </div>
@@ -141,6 +138,9 @@
     const formatarAno = (ano) => ano ? ano.toString().replace(/°/g, 'º').replace(/\s+/g, ' ').trim() : "";
     const formatarComp = (comp) => comp ? comp.toString().replace(/\s+/g, ' ').trim() : "";
     const formatarTextoLimpo = (txt) => txt ? txt.toString().replace(/([^\s-])-\s+([^\s-])/g, "$1$2").replace(/\s+/g, ' ').trim() : "";
+    
+    // Normalizador que ignora acentos para comparar a aba com o botão
+    const normalizarCategoria = (txt) => txt ? txt.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase() : "";
 
     const getValue = (doc, keyword) => {
         let key = Object.keys(doc).find(k => k.trim().toLowerCase().includes(keyword.toLowerCase()));
@@ -184,12 +184,12 @@
             const respostaMenu = await fetch(API_URL + "?aba=Menu_Configuracoes");
             const dadosMenu = await respostaMenu.json();
             
-            const containerMenu = document.getElementById('menu-blocos');
+            const containerGrupos = document.getElementById('container-grupos');
             const topNav = document.getElementById('dynamic-nav');
-            containerMenu.innerHTML = ""; 
+            containerGrupos.innerHTML = ""; 
 
             if(dadosMenu.length === 0) {
-                containerMenu.innerHTML = "<p>Nenhum módulo configurado.</p>";
+                containerGrupos.innerHTML = "<p>Nenhum módulo configurado.</p>";
             } else {
                 dadosMenu.slice(0, 4).forEach(botao => {
                     let navLink = document.createElement('a');
@@ -203,62 +203,107 @@
                     topNav.appendChild(navLink);
                 });
 
+                // MOTOR DE AGRUPAMENTO
+                let grupos = {};
                 dadosMenu.forEach(botao => {
-                    const divBloco = document.createElement('a');
-                    divBloco.className = 'modulo-card';
-                    divBloco.setAttribute('data-nome', botao["Nome do Botão"].toLowerCase());
-                    
-                    let strIcone = botao["Ícone"] ? botao["Ícone"].toString().trim() : "folder";
-                    let iconeRenderizado = "";
-                    
-                    if (strIcone.startsWith("http") || strIcone.toLowerCase().endsWith(".png") || strIcone.toLowerCase().endsWith(".jpg")) {
-                        let link = strIcone;
-                        const idMatch = link.match(/\/d\/(.*?)\//);
-                        if (idMatch && idMatch[1]) link = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
-                        iconeRenderizado = `<img src="${link}" alt="Ícone">`;
-                    } else if (/[a-zA-Z_]+/.test(strIcone) && strIcone.length > 2) {
-                        iconeRenderizado = `<span class="material-symbols-rounded">${strIcone}</span>`;
-                    } else { iconeRenderizado = strIcone; }
-                    
-                    let isExterno = botao["Tipo de Conteúdo"] === "Link Externo";
-                    
-                    if (isExterno) {
-                        divBloco.href = botao["Aba de Destino"];
-                        divBloco.target = "_blank";
-                    } else {
-                        divBloco.href = "#";
-                        divBloco.onclick = (e) => { e.preventDefault(); abrirTela(botao["Aba de Destino"], botao["Tipo de Conteúdo"], botao["Nome do Botão"]); };
-                    }
-                    
-                    let iconeAcao = isExterno ? "open_in_new" : "arrow_forward";
-                    let textoAcao = isExterno ? "Acessar Portal" : "Abrir Módulo";
-                    let textoDescricao = botao["Descrição"] ? botao["Descrição"] : `Acesse as informações cadastradas no módulo de ${botao["Nome do Botão"].toLowerCase()}.`;
-                    
-                    divBloco.innerHTML = `
-                        <div class="card-header">
-                            <div class="card-icon-box">${iconeRenderizado}</div>
-                            <div class="card-title">${botao["Nome do Botão"]}</div>
-                        </div>
-                        <div class="card-desc">${textoDescricao}</div>
-                        <div class="card-footer">
-                            <span>${textoAcao}</span>
-                            <span class="material-symbols-rounded">${iconeAcao}</span>
-                        </div>
-                    `;
-                    containerMenu.appendChild(divBloco);
+                    let nomeGrupo = botao["Grupo"] ? botao["Grupo"].toString().trim() : "Módulos de Acesso";
+                    if(!grupos[nomeGrupo]) grupos[nomeGrupo] = [];
+                    grupos[nomeGrupo].push(botao);
                 });
+
+                for(let nomeGrupo in grupos) {
+                    let divSecao = document.createElement('div');
+                    divSecao.className = 'grupo-secao';
+                    divSecao.style.marginBottom = "45px";
+
+                    // Define um ícone inteligente com base no nome do grupo
+                    let iconText = "grid_view";
+                    if(nomeGrupo.toLowerCase().includes("pedag")) iconText = "school";
+                    else if(nomeGrupo.toLowerCase().includes("admin") || nomeGrupo.toLowerCase().includes("gestão") || nomeGrupo.toLowerCase().includes("gestao")) iconText = "admin_panel_settings";
+                    else if(nomeGrupo.toLowerCase().includes("externo") || nomeGrupo.toLowerCase().includes("link")) iconText = "public";
+                    else if(nomeGrupo.toLowerCase().includes("avalia")) iconText = "quiz";
+                    else if(nomeGrupo.toLowerCase().includes("diário") || nomeGrupo.toLowerCase().includes("diario")) iconText = "menu_book";
+
+                    divSecao.innerHTML = `
+                        <div class="section-title">
+                            <span class="material-symbols-rounded">${iconText}</span> ${nomeGrupo}
+                        </div>
+                        <div class="menu-blocos-grid"></div>
+                    `;
+                    
+                    let grid = divSecao.querySelector('.menu-blocos-grid');
+
+                    grupos[nomeGrupo].forEach(botao => {
+                        const divBloco = document.createElement('a');
+                        divBloco.className = 'modulo-card';
+                        divBloco.setAttribute('data-nome', botao["Nome do Botão"].toLowerCase());
+                        
+                        let strIcone = botao["Ícone"] ? botao["Ícone"].toString().trim() : "folder";
+                        let iconeRenderizado = "";
+                        
+                        if (strIcone.startsWith("http") || strIcone.toLowerCase().endsWith(".png") || strIcone.toLowerCase().endsWith(".jpg")) {
+                            let link = strIcone;
+                            const idMatch = link.match(/\/d\/(.*?)\//);
+                            if (idMatch && idMatch[1]) link = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+                            iconeRenderizado = `<img src="${link}" alt="Ícone">`;
+                        } else if (/[a-zA-Z_]+/.test(strIcone) && strIcone.length > 2) {
+                            iconeRenderizado = `<span class="material-symbols-rounded">${strIcone}</span>`;
+                        } else { iconeRenderizado = strIcone; }
+                        
+                        let isExterno = botao["Tipo de Conteúdo"] === "Link Externo";
+                        
+                        if (isExterno) {
+                            divBloco.href = botao["Aba de Destino"];
+                            divBloco.target = "_blank";
+                        } else {
+                            divBloco.href = "#";
+                            divBloco.onclick = (e) => { e.preventDefault(); abrirTela(botao["Aba de Destino"], botao["Tipo de Conteúdo"], botao["Nome do Botão"]); };
+                        }
+                        
+                        let iconeAcao = isExterno ? "open_in_new" : "arrow_forward";
+                        let textoAcao = isExterno ? "Acessar Portal" : "Abrir Módulo";
+                        let textoDescricao = botao["Descrição"] ? botao["Descrição"] : `Acesse as informações cadastradas no módulo de ${botao["Nome do Botão"].toLowerCase()}.`;
+                        
+                        divBloco.innerHTML = `
+                            <div class="card-header">
+                                <div class="card-icon-box">${iconeRenderizado}</div>
+                                <div class="card-title">${botao["Nome do Botão"]}</div>
+                            </div>
+                            <div class="card-desc">${textoDescricao}</div>
+                            <div class="card-footer">
+                                <span>${textoAcao}</span>
+                                <span class="material-symbols-rounded">${iconeAcao}</span>
+                            </div>
+                        `;
+                        grid.appendChild(divBloco);
+                    });
+                    
+                    containerGrupos.appendChild(divSecao);
+                }
             }
         } catch (erro) {
-            document.getElementById('menu-blocos').innerHTML = "<p style='color:red;'>Erro ao conectar com a base de dados.</p>";
+            document.getElementById('container-grupos').innerHTML = "<p style='color:red;'>Erro ao conectar com a base de dados.</p>";
         }
     }
 
+    // Filtra ocultando os grupos se ficarem vazios durante a pesquisa
     function filtrarModulos() {
         let input = document.getElementById('input-pesquisa').value.toLowerCase();
-        let cards = document.getElementsByClassName('modulo-card');
-        for (let i = 0; i < cards.length; i++) {
-            let nome = cards[i].getAttribute('data-nome');
-            if (nome.includes(input)) { cards[i].style.display = "flex"; } else { cards[i].style.display = "none"; }
+        let grupos = document.getElementsByClassName('grupo-secao');
+        
+        for (let i = 0; i < grupos.length; i++) {
+            let cards = grupos[i].getElementsByClassName('modulo-card');
+            let temVisivel = false;
+            for (let j = 0; j < cards.length; j++) {
+                let nome = cards[j].getAttribute('data-nome');
+                if (nome.includes(input)) { 
+                    cards[j].style.display = "flex"; 
+                    temVisivel = true;
+                } else { 
+                    cards[j].style.display = "none"; 
+                }
+            }
+            grupos[i].style.display = temVisivel ? "block" : "none";
         }
     }
 
@@ -274,8 +319,8 @@
             const dados = await resposta.json();
 
             if (tipoConteudo === "Documentos") {
-                let docsDaCategoria = dados.filter(doc => doc["Categoria"] && doc["Categoria"].toString().trim().toLowerCase() === tituloBotao.toString().trim().toLowerCase());
-                documentosGlobais = docsDaCategoria.length > 0 ? docsDaCategoria : dados;
+                let docsDaCategoria = dados.filter(doc => doc["Categoria"] && normalizarCategoria(doc["Categoria"]) === normalizarCategoria(tituloBotao));
+                documentosGlobais = docsDaCategoria; 
                 desenharTelaDocumentos(container, tituloBotao);
                 
             } else if (tipoConteudo === "Currículo" || tipoConteudo === "Curriculo") {
@@ -291,7 +336,7 @@
     }
 
     // ---------------------------------------------------------
-    // MOTOR DE BUSCA DO CURRÍCULO (AGORA COM CÓDIGO LIMPO NA CAIXA)
+    // MOTOR DE BUSCA DO CURRÍCULO 
     // ---------------------------------------------------------
     function desenharTelaCurriculo(container, tituloBotao) {
         if(curriculoGlobal.length === 0) { container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem;">${tituloBotao}</h1><p>Nenhuma habilidade cadastrada.</p>`; return; }
@@ -317,14 +362,11 @@
                 ${compLimpos.map(c => `<option value="${c}">${c}</option>`).join('')}
             </select>
             
-            <!-- A NOVA CAIXA: APENAS O CÓDIGO DA HABILIDADE APARECE AQUI -->
             <select id="filtro-hab-curr" class="filtro-select" style="flex: 2; min-width: 250px;" onchange="aplicarFiltrosCurriculo()">
                 <option value="Todos">🎯 Habilidade: Todas</option>
                 ${habLimpos.map(h => {
-                    // O Algoritmo que pesca só o código (ex: EF15AR01P5)
                     let matchCodigo = h.match(/^\(?[A-Z0-9]+\)?/i);
                     let codigoVisivel = matchCodigo ? matchCodigo[0] : (h.length > 25 ? h.substring(0, 25) + "..." : h);
-                    
                     return `<option value="${h.replace(/"/g, '&quot;')}">${codigoVisivel}</option>`
                 }).join('')}
             </select>
@@ -398,7 +440,6 @@
         document.getElementById('lista-curriculo').innerHTML = html;
     };
 
-    // Funções Antigas de Documentos e Avisos
     function desenharTelaAvisos(dados, container, tituloBotao) {
         if(dados.length === 0) { container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem;">${tituloBotao}</h1><p>Nenhum aviso no momento.</p>`; return; }
         let html = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 30px; letter-spacing: -0.5px;">${tituloBotao}</h1>`;
@@ -412,8 +453,20 @@
         container.innerHTML = html;
     }
 
+    // ---------------------------------------------------------
+    // TELA DE DOCUMENTOS (Com Visual Profissional para Categoria Vazia)
+    // ---------------------------------------------------------
     function desenharTelaDocumentos(container, tituloBotao) {
-        if(documentosGlobais.length === 0) { container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem;">${tituloBotao}</h1><p>Nenhum documento.</p>`; return; }
+        if(documentosGlobais.length === 0) { 
+            container.innerHTML = `
+            <h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px; letter-spacing: -0.5px;">${tituloBotao}</h1>
+            <div style="background: white; padding: 50px 20px; border-radius: 12px; border: 1px solid #e5e7eb; text-align: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);">
+                <span class="material-symbols-rounded" style="font-size: 3.5rem; color: #d1d5db; margin-bottom: 15px; display: block;">folder_open</span>
+                <p style="color: #4b5563; font-size: 1.15rem; font-weight: 600;">Nenhum documento cadastrado nesta categoria.</p>
+                <p style="color: #9ca3af; font-size: 0.95rem; margin-top: 8px;">Os arquivos aparecerão aqui assim que forem adicionados na planilha.</p>
+            </div>`; 
+            return; 
+        }
 
         let listaComponentesUnicos = [];
         documentosGlobais.forEach(d => {
