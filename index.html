@@ -158,13 +158,11 @@
     let diagHabilidadesGlobais = [];
     let diagEstudantesGlobais = [];
 
-    // --- MOTOR DE HIGIENIZAÇÃO DE DADOS ---
     const formatarAno = (ano) => ano ? ano.toString().replace(/°/g, 'º').replace(/\s+/g, ' ').trim() : "";
     const formatarComp = (comp) => comp ? comp.toString().replace(/\s+/g, ' ').trim() : "";
     const formatarTextoLimpo = (txt) => txt ? txt.toString().replace(/([^\s-])-\s+([^\s-])/g, "$1$2").replace(/\s+/g, ' ').trim() : "";
     const normalizarCategoria = (txt) => txt ? txt.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase() : "";
 
-    // FUNÇÃO MELHORADA: Agora ela ignora acentos na hora de procurar a coluna certa na planilha!
     const getValue = (doc, keyword) => {
         let normKeyword = normalizarCategoria(keyword);
         let key = Object.keys(doc).find(k => normalizarCategoria(k).includes(normKeyword));
@@ -173,11 +171,7 @@
     
     const consertarTexto = (txt) => {
         if (!txt) return "";
-        let limpo = txt.toString()
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/([a-zA-Zá-úÁ-ÚçÇ])-\s+([a-zA-Zá-úÁ-ÚçÇ])/g, "$1$2"); 
+        let limpo = txt.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/([a-zA-Zá-úÁ-ÚçÇ])-\s+([a-zA-Zá-úÁ-ÚçÇ])/g, "$1$2"); 
         return limpo.replace(/\n/g, "<br>");
     };
 
@@ -333,31 +327,46 @@
         document.getElementById('tela-conteudo').style.display = 'block';
         const container = document.getElementById('conteudo-dinamico');
 
-        // MÁGICA DO RAIO-X ACONTECENDO AQUI
+        // MÁGICA DO RAIO-X ACONTECENDO AQUI (COM DETETIVE DE ERROS)
         if (tipoConteudo === "Painel_Diagnostica") {
             container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px; letter-spacing: -0.5px;">${tituloBotao}</h1>
             <div id="loading"><span class="material-symbols-rounded" style="font-size: 3rem; color: #f59e0b; display: block; margin-bottom: 10px;">analytics</span>Gerando Raio-X Pedagógico... Baixando base de dados do Estado...</div>`;
             try {
-                // Busca os alunos (da aba definida no botão, ex: Resultados_Diagnostica)
-                const respostaEst = await fetch(API_URL + "?aba=" + nomeAba);
-                const dadosEst = await respostaEst.json();
+                let urlEstudantes = API_URL + "?aba=" + encodeURIComponent(nomeAba.trim());
+                const respostaEst = await fetch(urlEstudantes);
+                const textoEst = await respostaEst.text(); 
+                
+                let dadosEst;
+                try {
+                    dadosEst = JSON.parse(textoEst);
+                } catch(err) {
+                    throw new Error("O Google não retornou dados válidos da aba " + nomeAba + ". Verifique se o nome está exato e sem espaços.");
+                }
+
+                if(dadosEst.error) throw new Error(dadosEst.error);
                 
                 let dadosHab = [];
                 try {
-                    // Busca as habilidades (Procura primeiro pelo nome sugerido)
-                    let respostaHab = await fetch(API_URL + "?aba=Resultados_Habilidades");
-                    dadosHab = await respostaHab.json();
-                    
-                    // Se estiver vazio, tenta com o nome alternativo que criamos agora
-                    if(dadosHab.length === 0 || dadosHab.error) {
-                        respostaHab = await fetch(API_URL + "?aba=Habilidades_Diagnostica");
-                        let altDados = await respostaHab.json();
-                        if(!altDados.error) dadosHab = altDados;
-                    }
-                } catch(e) { console.log("Aba de habilidades não encontrada."); }
+                    let urlHab = API_URL + "?aba=Habilidades_Diagnostica";
+                    const respostaHab = await fetch(urlHab);
+                    const textoHab = await respostaHab.text();
+                    const jsonHab = JSON.parse(textoHab);
+                    if(!jsonHab.error) dadosHab = jsonHab;
+                } catch(e) { console.log("Aba Habilidades_Diagnostica não processada perfeitamente."); }
 
                 desenharTelaDiagnostica(dadosHab, dadosEst, container, tituloBotao);
-            } catch(e) { container.innerHTML += `<p style="color:red;">Falha ao conectar com o banco de dados.</p>`; }
+            } catch(e) { 
+                container.innerHTML = `
+                <h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1>
+                <div style="background: #fee2e2; border-left: 5px solid #ef4444; padding: 25px; border-radius: 12px; margin-top: 20px;">
+                    <h3 style="color: #b91c1c; margin-bottom: 15px; font-size: 1.3rem;">Ops! Ocorreu um erro de leitura na Planilha.</h3>
+                    <p style="color: #7f1d1d; font-size: 1rem; margin-bottom: 15px; background: white; padding: 10px; border-radius: 8px;"><b>Motivo técnico:</b> ${e.message}</p>
+                    <p style="color: #991b1b; font-size: 1rem; line-height: 1.6;"><b>Verifique esses 3 passos na sua Planilha:</b><br>
+                    1. Lá no <b>Menu_Configuracoes</b>, a <i>Aba de Destino</i> deste botão precisa estar escrita exatamente <b>${nomeAba}</b> (sem espaços no final).<br>
+                    2. Verifique se a aba de estudantes se chama exatamente <b>${nomeAba}</b> e a aba de habilidades se chama <b>Habilidades_Diagnostica</b>.<br>
+                    3. <b>O ERRO MAIS COMUM:</b> Se você colou um arquivo <b>CSV</b> do governo, ele pode ter ficado todo grudado na Coluna A. Selecione a Coluna A, vá no menu do Google Sheets em <b>Dados > Dividir texto em colunas</b>.</p>
+                </div>`; 
+            }
             return;
         }
 
@@ -382,7 +391,7 @@
     }
 
     // ---------------------------------------------------------
-    // O NOVO RAIO-X PEDAGÓGICO (LENDO COLUNAS DO ESTADO)
+    // O NOVO RAIO-X PEDAGÓGICO
     // ---------------------------------------------------------
     function desenharTelaDiagnostica(habilidades, estudantes, container, tituloBotao) {
         
@@ -394,8 +403,8 @@
             <h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1>
             <div style="background: white; padding: 50px 20px; border-radius: 12px; border: 1px solid #e5e7eb; text-align: center;">
                 <span class="material-symbols-rounded" style="font-size: 3.5rem; color: #d1d5db; margin-bottom: 15px; display: block;">cloud_off</span>
-                <p style="color: #4b5563; font-size: 1.15rem; font-weight: 600;">Planilhas de Estudantes vazias ou não encontradas.</p>
-                <p style="color: #9ca3af; font-size: 0.95rem; margin-top: 8px;">Copie os dados do Estado para a aba "Resultados_Diagnostica".</p>
+                <p style="color: #4b5563; font-size: 1.15rem; font-weight: 600;">Planilha de Estudantes vazia ou com formato incorreto.</p>
+                <p style="color: #9ca3af; font-size: 0.95rem; margin-top: 8px;">Certifique-se de que os dados do Governo estão separados em colunas reais na planilha (Não podem ficar todos grudados na Coluna A).</p>
             </div>`;
             return;
         }
@@ -520,7 +529,6 @@
 
             let estQueErraramHTML = "";
             
-            // Puxa só a parte "H 01" da string (Ex: "H 01 (D005_CN)" vira "H 01")
             let codHabMatch = pos.match(/H\s*\d+/i);
             let codHab = codHabMatch ? codHabMatch[0].replace(/\s+/g, ' ').trim() : null; 
             
@@ -529,13 +537,13 @@
                     let chaveExata = Object.keys(e).find(k => k.trim().toUpperCase() === codHab.toUpperCase());
                     if(!chaveExata) return false;
                     let nota = e[chaveExata].toString().trim();
-                    return nota.startsWith("0"); // Se a nota for "0 / 1"
+                    return nota.startsWith("0"); // Identifica o erro (0 / 1 ou 0 / 2)
                 });
                 
                 if(erraram.length > 0) {
                     estQueErraramHTML = `
                     <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #d1d5db; display:none;" id="hab-detalhe-${index}">
-                        <div style="font-size: 0.85rem; color: #111827; font-weight: 700; margin-bottom: 5px;">Alunos que erraram a questão (${erraram.length}):</div>
+                        <div style="font-size: 0.85rem; color: #111827; font-weight: 700; margin-bottom: 5px;">Alunos que erraram (${erraram.length}):</div>
                         <div style="font-size: 0.8rem; color: #4b5563; line-height: 1.5; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #f3f4f6;">
                             ${erraram.map(e => `&bull; ${getValue(e, "estudante")} (Turma ${getValue(e, "turma")})`).join("<br>")}
                         </div>
@@ -561,7 +569,7 @@
         if(habFiltradas.length === 0) {
             htmlHab = `<div style="text-align:center; padding: 20px;">
                 <p style="color:#6b7280; margin-bottom:10px;">Nenhuma habilidade cadastrada para este componente.</p>
-                <p style="font-size:0.85rem; color:#9ca3af;">Verifique se os dados estão colados na aba "Habilidades_Diagnostica".</p>
+                <p style="font-size:0.85rem; color:#9ca3af;">Verifique se você colou os dados do CAED/SIMAVE na aba "Habilidades_Diagnostica" e separou o texto em colunas.</p>
             </div>`;
         }
         document.getElementById('lista-hab-criticas').innerHTML = htmlHab;
@@ -599,7 +607,7 @@
     };
 
     // ---------------------------------------------------------
-    // OUTRAS TELAS MANTIDAS (CURRÍCULO E DOCS)
+    // OUTRAS TELAS MANTIDAS
     // ---------------------------------------------------------
     function desenharTelaCurriculo(container, tituloBotao) {
         if(curriculoGlobal.length === 0) { container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem;">${tituloBotao}</h1><p>Nenhuma habilidade cadastrada.</p>`; return; }
