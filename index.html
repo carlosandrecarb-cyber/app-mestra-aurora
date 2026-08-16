@@ -105,6 +105,12 @@
         .bg-alto { background: #d1fae5; color: #047857; }
         
         .perfil-card { background: white; padding: 30px; border-radius: 16px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px rgba(0,0,0,0.03); }
+        
+        /* TABELA IDEB */
+        .tabela-ideb { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb; }
+        .tabela-ideb th, .tabela-ideb td { padding: 14px 16px; text-align: left; border-bottom: 1px solid #f3f4f6; font-size: 0.95rem; }
+        .tabela-ideb th { background: #f9fafb; font-weight: 700; color: #374151; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px; }
+        .tabela-ideb tr:hover { background: #fdf8f6; }
     </style>
 </head>
 <body>
@@ -165,6 +171,7 @@
     let diagEstudantesGlobais = [];
     let trimestralGlobal = [];
     let externaGlobal = [];
+    let idebGlobal = [];
 
     const formatarAno = (ano) => ano ? ano.toString().replace(/°/g, 'º').replace(/\s+/g, ' ').trim() : "";
     const formatarComp = (comp) => comp ? comp.toString().replace(/\s+/g, ' ').trim() : "";
@@ -350,6 +357,16 @@
             return;
         }
 
+        if (tipoConteudo === "Painel_IDEB") {
+            container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1>
+            <div id="loading"><span class="material-symbols-rounded" style="font-size: 3rem; color: #f59e0b; display: block; margin-bottom: 10px;">trending_up</span>Carregando Histórico do IDEB...</div>`;
+            try {
+                let dadosIdeb = await baixarAba(nomeAba.trim());
+                desenharTelaIDEB(dadosIdeb, container, tituloBotao);
+            } catch(e) { container.innerHTML = `<div style="background: #fee2e2; padding: 25px; border-radius: 12px;"><h3 style="color: #b91c1c;">Erro</h3><p>${e.message}</p></div>`; }
+            return;
+        }
+
         container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1><div id="loading">Sincronizando dados...</div>`;
         try {
             const dados = await baixarAba(nomeAba);
@@ -368,11 +385,72 @@
     }
 
     // ---------------------------------------------------------
-    // MOTOR DO PAINEL DE AVALIAÇÃO EXTERNA (PROEB - POR DESCRITORES)
+    // MOTOR DO PAINEL HISTÓRICO DO IDEB
+    // ---------------------------------------------------------
+    function desenharTelaIDEB(dados, container, tituloBotao) {
+        idebGlobal = dados.filter(d => getValue(d, "ano") || getValue(d, "ideb"));
+
+        if(idebGlobal.length === 0) {
+            container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1><div style="background: white; padding: 40px; border-radius: 12px; text-align: center;"><p style="color: #4b5563; font-weight: 600;">Nenhum dado encontrado na aba Dados_IDEB.</p></div>`;
+            return;
+        }
+
+        // Ordena por ano crescente
+        idebGlobal.sort((a, b) => (parseInt(getValue(a, "ano")) || 0) - (parseInt(getValue(b, "ano")) || 0));
+
+        let linhasTabela = "";
+        idebGlobal.forEach(d => {
+            let ano = getValue(d, "ano") || "-";
+            let notaMat = getValue(d, "nota matemática") || getValue(d, "nota matematica") || "-";
+            let notaPort = getValue(d, "nota português") || getValue(d, "nota portugues") || "-";
+            let mediaPad = getValue(d, "nota média padronizada") || getValue(d, "nota media padronizada") || "-";
+            let idebObs = getValue(d, "ideb observado") || getValue(d, "ideb") || "-";
+            let meta = getValue(d, "meta") || "-";
+
+            linhasTabela += `
+            <tr>
+                <td><b>${ano}</b></td>
+                <td>${notaMat}</td>
+                <td>${notaPort}</td>
+                <td>${mediaPad}</td>
+                <td><b>${idebObs}</b></td>
+                <td><span style="color: #059669; font-weight: 700;">${meta}</span></td>
+            </tr>`;
+        });
+
+        let html = `
+        <h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px; letter-spacing: -0.5px;">${tituloBotao}</h1>
+        <div class="diag-card" style="margin-bottom: 30px;">
+            <div class="diag-header"><span class="material-symbols-rounded" style="color: #3b82f6;">trending_up</span> Evolução Histórica do IDEB</div>
+            <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 20px;">Acompanhamento plurianual dos indicadores de proficiência em Língua Portuguesa, Matemática e o índice geral do IDEB em relação às metas estabelecidas.</p>
+            <div style="overflow-x: auto;">
+                <table class="tabela-ideb">
+                    <thead>
+                        <tr>
+                            <th>Ano / Edição</th>
+                            <th>Nota Matemática</th>
+                            <th>Nota Português</th>
+                            <th>Média Padronizada</th>
+                            <th>IDEB Observado</th>
+                            <th>Meta Projetada</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${linhasTabela}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        `;
+
+        container.innerHTML = html;
+    }
+
+    // ---------------------------------------------------------
+    // DEMAIS PAINÉIS MANTIDOS
     // ---------------------------------------------------------
     function desenharTelaExterna(dados, container, tituloBotao) {
         externaGlobal = dados.filter(d => getValue(d, "descritor") && getValue(d, "percentual de acerto"));
-
         if(externaGlobal.length === 0) {
             container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1><div style="background: white; padding: 40px; border-radius: 12px; text-align: center;"><p style="color: #4b5563; font-weight: 600;">Nenhum dado encontrado na aba Resultados_Externa.</p></div>`;
             return;
@@ -400,7 +478,6 @@
         </div>
         <div id="ext-dashboard"></div>
         `;
-
         container.innerHTML = html;
         if(componentes.length > 0) document.getElementById('ext-comp').value = componentes[0];
         aplicarFiltrosExterna();
@@ -418,7 +495,6 @@
             return matchEd && matchAno && matchComp;
         });
 
-        // Ordena descritores do pior acerto para o melhor
         filtrados.sort((a, b) => (parseFloat(getValue(a, "percentual de acerto")) || 0) - (parseFloat(getValue(b, "percentual de acerto")) || 0));
 
         let totalDesc = filtrados.length;
@@ -446,7 +522,6 @@
                 <div id="lista-descritores"></div>
             </div>
         `;
-
         document.getElementById('ext-dashboard').innerHTML = htmlDash;
 
         let htmlDesc = "";
@@ -458,8 +533,8 @@
 
             let colorClass = "baixo";
             if(faixa.includes("baixo") && !faixa.includes("médio")) colorClass = "baixo";
-            else if(faixa.includes("médio baixo") || faixa.includes("medio baixo")) colorClass = "medio-baixo";
-            else if(faixa.includes("médio") || faixa.includes("medio")) colorClass = "medio";
+            else if(faixa.includes("médio baixo")) colorClass = "medio-baixo";
+            else if(faixa.includes("médio")) colorClass = "medio";
             else if(faixa.includes("alto")) colorClass = "alto";
 
             htmlDesc += `
@@ -471,16 +546,10 @@
                 <div style="font-size: 0.9rem; color: #4b5563; margin-top: 8px; line-height: 1.5;">${descTexto}</div>
             </div>`;
         });
-
-        if(filtrados.length === 0) {
-            htmlDesc = "<p style='color:#6b7280; text-align:center; padding: 20px;'>Nenhum descritor encontrado para os filtros selecionados.</p>";
-        }
+        if(filtrados.length === 0) htmlDesc = "<p style='color:#6b7280; text-align:center; padding: 20px;'>Nenhum descritor encontrado.</p>";
         document.getElementById('lista-descritores').innerHTML = htmlDesc;
     };
 
-    // ---------------------------------------------------------
-    // DEMAIS PAINÉIS (DIAGNÓSTICO, TRIMESTRAL, ETC. MANTIDOS)
-    // ---------------------------------------------------------
     function desenharTelaDiagnostica(habilidades, estudantes, mapa, container, tituloBotao) {
         diagHabilidadesGlobais = habilidades.filter(h => getValue(h, "posição") || getValue(h, "habilidade"));
         let estBrutos = estudantes.filter(e => getValue(e, "estudante") && (getValue(e, "turma") || getValue(e, "código da turma")));
@@ -527,7 +596,6 @@
         </div>
         <div id="diag-dashboard"></div>
         `;
-
         container.innerHTML = html;
         if(componentes.length > 0) document.getElementById('diag-comp').value = componentes[0];
         aplicarFiltrosDiagnostica();
@@ -596,7 +664,6 @@
                 </div>
             </div>
         `;
-
         document.getElementById('diag-dashboard').innerHTML = htmlDash;
 
         if(valComp === "Todos") {
@@ -646,7 +713,7 @@
             }
 
             htmlHab += `
-            <div class="diag-habilidade ${colorClass}" style="cursor: pointer;" onclick="document.getElementById('hab-detalhe-${index}').style.display = document.getElementById('trim-detalhe-${index}')?.style.display === 'none' ? 'block' : 'none'">
+            <div class="diag-habilidade ${colorClass}" style="cursor: pointer;" onclick="document.getElementById('hab-detalhe-${index}').style.display = document.getElementById('hab-detalhe-${index}').style.display === 'none' ? 'block' : 'none'">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div style="font-weight: 800; font-size: 1rem; color: #1f2937;">${pos}</div>
                     <div class="faixa-badge bg-${colorClass}">${pct}%</div>
@@ -655,7 +722,6 @@
                 ${estQueErraramHTML}
             </div>`;
         });
-        
         if(habFiltradas.length === 0) htmlHab = "<p style='color:#6b7280; text-align:center;'>Nenhuma habilidade cadastrada.</p>";
         document.getElementById('lista-hab-criticas').innerHTML = htmlHab;
 
@@ -686,7 +752,6 @@
                 </div>
             </div>`;
         });
-        
         if(estFiltrados.length === 0) htmlEst = "<p style='color:#6b7280; text-align:center;'>Nenhum aluno encontrado.</p>";
         document.getElementById('lista-est-alerta').innerHTML = htmlEst;
     };
@@ -769,7 +834,6 @@
                 ${htmlCards}
             </div>
         `;
-
         container.innerHTML = htmlPerfil;
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -786,7 +850,7 @@
         const turmas = [...new Set(trimestralGlobal.map(d => formatarTextoLimpo(getValue(d, "turma"))).filter(Boolean))].sort();
 
         let html = `
-        <h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1>
+        <h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px; letter-spacing: -0.5px;">${tituloBotao}</h1>
         <div class="filtros-container">
             <select id="trim-ano" class="filtro-select" onchange="aplicarFiltrosTrimestral()">
                 <option value="Todos">🎓 Ano Escolar: Todos</option>
@@ -899,7 +963,6 @@
                 </div>
             </div>`;
         });
-
         if(listaConsolidada.length === 0) htmlHab = "<p style='color:#6b7280; text-align:center; padding: 20px;'>Nenhuma habilidade encontrada.</p>";
         document.getElementById('lista-hab-trimestre').innerHTML = htmlHab;
     };
