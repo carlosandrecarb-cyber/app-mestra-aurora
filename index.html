@@ -156,8 +156,22 @@
 
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxfewC2cAeLK3ULrRcOP72E0KUqoteBNgw2TI5GUOl4WFYhQLIQoJNOWsLOFMl-zOIQzg/exec";
-    let documentosGlobais = []; 
-    let curriculoGlobal = []; 
+    
+    // --- SISTEMA DE CACHE INTELIGENTE (ELIMINA LENTIDÃO) ---
+    const cacheMemoria = {};
+    async function baixarAba(nomeAba) {
+        if (cacheMemoria[nomeAba]) {
+            return cacheMemoria[nomeAba]; // Retorna instantaneamente da memória!
+        }
+        let url = API_URL + "?aba=" + encodeURIComponent(nomeAba.trim());
+        const resposta = await fetch(url);
+        const texto = await resposta.text();
+        let dados = JSON.parse(texto);
+        if (dados.error) throw new Error(dados.error);
+        cacheMemoria[nomeAba] = dados; // Salva na memória
+        return dados;
+    }
+
     let diagHabilidadesGlobais = [];
     let diagEstudantesGlobais = [];
 
@@ -193,9 +207,7 @@
     async function iniciarApp() {
         definirSaudacao();
         try {
-            const respostaConfig = await fetch(API_URL + "?aba=Configuracoes_Gerais");
-            const dadosConfig = await respostaConfig.json();
-            
+            const dadosConfig = await baixarAba("Configuracoes_Gerais");
             if(dadosConfig.length > 0) {
                 const config = dadosConfig[0];
                 let linkImagem = config["Link da Logo"].trim();
@@ -205,9 +217,7 @@
                 document.getElementById('portal-title').innerText = `Portal de Dados da ${config["Nome da Escola"] || "EE Mestra Aurora"}`;
             }
 
-            const respostaMenu = await fetch(API_URL + "?aba=Menu_Configuracoes");
-            const dadosMenu = await respostaMenu.json();
-            
+            const dadosMenu = await baixarAba("Menu_Configuracoes");
             const containerGrupos = document.getElementById('container-grupos');
             const topNav = document.getElementById('dynamic-nav');
             containerGrupos.innerHTML = ""; 
@@ -335,25 +345,13 @@
 
         if (tipoConteudo === "Painel_Diagnostica") {
             container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1>
-            <div id="loading"><span class="material-symbols-rounded" style="font-size: 3rem; color: #f59e0b; display: block; margin-bottom: 10px;">analytics</span>Gerando Raio-X Pedagógico...</div>`;
+            <div id="loading"><span class="material-symbols-rounded" style="font-size: 3rem; color: #f59e0b; display: block; margin-bottom: 10px;">analytics</span>Carregando Raio-X Pedagógico (instantâneo se já acessado)...</div>`;
             try {
-                let urlEstudantes = API_URL + "?aba=" + encodeURIComponent(nomeAba.trim());
-                const respostaEst = await fetch(urlEstudantes);
-                const textoEst = await respostaEst.text(); 
-                let dadosEst = JSON.parse(textoEst);
-                if(dadosEst.error) throw new Error(dadosEst.error);
-                
+                let dadosEst = await baixarAba(nomeAba.trim());
                 let dadosHab = [];
-                try {
-                    let respostaHab = await fetch(API_URL + "?aba=Habilidades_Diagnostica");
-                    dadosHab = await respostaHab.json();
-                } catch(e) {}
-
+                try { dadosHab = await baixarAba("Habilidades_Diagnostica"); } catch(e) {}
                 let dadosMapa = [];
-                try {
-                    let respostaMapa = await fetch(API_URL + "?aba=Mapa_Turmas");
-                    dadosMapa = await respostaMapa.json();
-                } catch(e) {}
+                try { dadosMapa = await baixarAba("Mapa_Turmas"); } catch(e) {}
 
                 desenharTelaDiagnostica(dadosHab, dadosEst, dadosMapa, container, tituloBotao);
             } catch(e) { 
@@ -369,8 +367,7 @@
 
         container.innerHTML = `<h1 style="color: #111827; font-weight:800; font-size:2rem; margin-bottom: 25px;">${tituloBotao}</h1><div id="loading">Sincronizando dados...</div>`;
         try {
-            const resposta = await fetch(API_URL + "?aba=" + nomeAba);
-            const dados = await resposta.json();
+            const dados = await baixarAba(nomeAba);
 
             if (tipoConteudo === "Documentos") {
                 let docsDaCategoria = dados.filter(doc => doc["Categoria"] && normalizarCategoria(doc["Categoria"]) === normalizarCategoria(tituloBotao));
@@ -609,7 +606,7 @@
             let pctGeral = getValue(est, "acerto") || getValue(est, "percentual") || 0;
             let compAluno = getValue(est, "componente curricular") || "Componente não informado";
             
-            // Filtra colunas que começam com H e que possuem pontuação preenchida para este aluno/componente
+            // FILTRA APENAS AS COLUNAS H QUE TEM VALOR REAL PREENCHIDO (ELIMINA VAZIAS)
             let habilidadesDoEstudante = Object.keys(est).filter(k => {
                 let nomeCol = k.trim().toUpperCase();
                 let valorCol = est[k] ? est[k].toString().trim() : "";
@@ -622,7 +619,7 @@
                 let statusNota = est[col] ? est[col].toString().trim() : "";
                 let codHab = col.trim().toUpperCase(); // Ex: "H 01"
                 
-                // CRUZA A HABILIDADE PELO CÓDIGO E TAMBÉM PELA DISCIPLINA CORRETA
+                // --- CRUZAMENTO INTELIGENTE (MATÉRIA + HABILIDADE) ---
                 let habInfo = diagHabilidadesGlobais.find(h => {
                     let p = (getValue(h, "posição") || getValue(h, "habilidade") || "").toUpperCase();
                     let cHab = (getValue(h, "componente") || getValue(h, "componente curricular") || "").toUpperCase();
@@ -633,7 +630,7 @@
                     return matchPos && matchComp;
                 });
 
-                // Se não achar cruzando a disciplina (ex: abreviações diferentes), pega pelo menos a posição
+                // Plano B caso a abreviação da matéria varie um pouco
                 if (!habInfo) {
                     habInfo = diagHabilidadesGlobais.find(h => {
                         let p = (getValue(h, "posição") || getValue(h, "habilidade") || "").toUpperCase();
@@ -684,7 +681,7 @@
         `;
 
         container.innerHTML = htmlPerfil;
-        window.scrollTo({ top: 0, behavior: 'smooth' };
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     function desenharTelaCurriculo(container, tituloBotao) {
