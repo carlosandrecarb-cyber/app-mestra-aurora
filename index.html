@@ -184,6 +184,20 @@
         return dados;
     }
 
+    // Tradutor de data amigável (Ex: 2026-08-13T... vira 13/08/2026)
+    const formatarDataAmigavel = (dataStr) => {
+        if (!dataStr) return "Comunicado";
+        let str = dataStr.toString().trim();
+        if (str.includes("T")) {
+            let dataPart = str.split("T")[0];
+            let partes = dataPart.split("-");
+            if (partes.length === 3) {
+                return `${partes[2]}/${partes[1]}/${partes[0]}`;
+            }
+        }
+        return str;
+    };
+
     let documentosGlobais = []; 
     let curriculoGlobal = []; 
     let diagHabilidadesGlobais = [];
@@ -217,7 +231,6 @@
     async function iniciarApp() {
         definirSaudacao();
         try {
-            // Carrega dados do IDEB para o card lateral e Avisos para a home em segundo plano
             baixarAba("Dados_IDEB").then(dadosIdeb => {
                 if(dadosIdeb && dadosIdeb.length > 0) {
                     let ultimo = dadosIdeb[dadosIdeb.length - 1];
@@ -229,12 +242,12 @@
             baixarAba("Avisos").then(dadosAvisos => {
                 if(dadosAvisos && dadosAvisos.length > 0) {
                     let containerAvisos = document.getElementById('lista-avisos-home');
-                    let ultimos = dadosAvisos.slice(-3).reverse(); // Mostra os 3 últimos avisos
+                    let ultimos = dadosAvisos.slice(-3).reverse();
                     containerAvisos.innerHTML = ultimos.map(aviso => `
                         <div class="aviso-item">
                             <span class="material-symbols-rounded" style="color: #d97706; font-size: 1.2rem; margin-top: 2px;">info</span>
                             <div>
-                                <b style="font-size: 0.85rem; color: #6b7280; display: block; margin-bottom: 2px;">${aviso["Data"] || "Comunicado"}</b>
+                                <b style="font-size: 0.85rem; color: #6b7280; display: block; margin-bottom: 2px;">${formatarDataAmigavel(aviso["Data"])}</b>
                                 <span>${aviso["Mensagem"] || ""}</span>
                             </div>
                         </div>
@@ -473,7 +486,7 @@
         filtrados.sort((a, b) => (parseFloat(getValue(a, "percentual de acerto")) || 0) - (parseFloat(getValue(b, "percentual de acerto")) || 0));
         let totalDesc = filtrados.length;
         let mediaAcertos = totalDesc > 0 ? (filtrados.reduce((acc, curr) => acc + (parseFloat(getValue(curr, "percentual de acerto")) || 0), 0) / totalDesc).toFixed(1) : 0;
-        document.getElementById('ext-dashboard').innerHTML = `<div style="display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap;"><div style="flex:1; min-width:220px; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; text-align: center; border-bottom: 4px solid #3b82f6;"><div style="font-size: 0.9rem; color: #6b7280; font-weight: 700;">TOTAL DE DESCRITORES</div><div style="font-size: 2.5rem; font-weight: 800; color: #111827;">${totalDesc}</div></div><div style="flex:1; min-width:220px; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; text-align: center; border-bottom: 4px solid #059669;"><div style="font-size: 0.9rem; color: #6b7280; font-weight: 700;">MÉDIA DE ACERTOS</div><div style="font-size: 2.5rem; font-weight: 800; color: #059669;">${mediaAcertos}%</div></div></div><div class="diag-card"><div class="diag-header"><span class="material-symbols-rounded" style="color: #ef4444;">assignment_late</span> Mapa de Descritores Críticos</div><div id="lista-descritores"></div></div>`;
+        document.getElementById('ext-dashboard').innerHTML = `<div style="display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap;"><div style="flex:1; min-width:220px; background: white; padding: 20px; border-radius: 12px; text-align: center; border-bottom: 4px solid #3b82f6;"><div style="font-size: 0.9rem; color: #6b7280; font-weight: 700;">TOTAL DE DESCRITORES</div><div style="font-size: 2.5rem; font-weight: 800; color: #111827;">${totalDesc}</div></div><div style="flex:1; min-width:220px; background: white; padding: 20px; border-radius: 12px; text-align: center; border-bottom: 4px solid #059669;"><div style="font-size: 0.9rem; color: #6b7280; font-weight: 700;">MÉDIA DE ACERTOS</div><div style="font-size: 2.5rem; font-weight: 800; color: #059669;">${mediaAcertos}%</div></div></div><div class="diag-card"><div class="diag-header"><span class="material-symbols-rounded" style="color: #ef4444;">assignment_late</span> Mapa de Descritores Críticos</div><div id="lista-descritores"></div></div>`;
         let htmlDesc = "";
         filtrados.forEach(d => {
             let nomeDesc = getValue(d, "nome descritor") || "D?";
