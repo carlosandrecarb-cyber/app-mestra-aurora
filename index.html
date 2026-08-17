@@ -370,7 +370,7 @@
     }
 
     // ---------------------------------------------------------
-    // MOTOR DO PAINEL HISTÓRICO DO IDEB (BLINDADO)
+    // MOTOR DO PAINEL HISTÓRICO DO IDEB (LIMPO E PRECISO)
     // ---------------------------------------------------------
     function desenharTelaIDEB(dados, container, tituloBotao) {
         idebGlobal = dados.filter(d => getValue(d, "ano") || getValue(d, "ideb"));
@@ -382,16 +382,6 @@
 
         idebGlobal.sort((a, b) => (parseInt(getValue(a, "ano")) || 0) - (parseInt(getValue(b, "ano")) || 0));
 
-        const limparNumero = (val) => {
-            if (!val) return "-";
-            let str = val.toString().trim();
-            if (str.includes("T") || str.includes("2026-")) {
-                let partes = str.split("T")[0].split("-");
-                if (partes.length === 3) return partes[1] + "." + partes[2].substring(0, 1); 
-            }
-            return str;
-        };
-
         let linhasTabela = "";
         idebGlobal.forEach(d => {
             let ano = getValue(d, "ano") || "-";
@@ -400,8 +390,6 @@
             let mediaPad = getValue(d, "nota média padronizada") || getValue(d, "nota media padronizada") || "-";
             let idebObs = getValue(d, "ideb observado") || getValue(d, "ideb") || "-";
             let meta = getValue(d, "meta") || "-";
-
-            idebObs = limparNumero(idebObs);
 
             linhasTabela += `
             <tr>
