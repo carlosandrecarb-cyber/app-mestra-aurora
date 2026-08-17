@@ -384,8 +384,8 @@
         } catch (erro) { container.innerHTML += `<p style="color:red;">Falha ao carregar.</p>`; }
     }
 
-    // ---------------------------------------------------------
-    // MOTOR DO PAINEL HISTÓRICO DO IDEB
+ // ---------------------------------------------------------
+    // MOTOR DO PAINEL HISTÓRICO DO IDEB (BLINDADO CONTRA DATAS)
     // ---------------------------------------------------------
     function desenharTelaIDEB(dados, container, tituloBotao) {
         idebGlobal = dados.filter(d => getValue(d, "ano") || getValue(d, "ideb"));
@@ -395,8 +395,23 @@
             return;
         }
 
-        // Ordena por ano crescente
         idebGlobal.sort((a, b) => (parseInt(getValue(a, "ano")) || 0) - (parseInt(getValue(b, "ano")) || 0));
+
+        // Função auxiliar para limpar datas indesejadas que o Sheets cria
+        const limparNumero = (val) => {
+            if (!val) return "-";
+            let str = val.toString().trim();
+            // Se o Sheets transformou em data (ex: 2026-02-03...), descarta e tenta ler o valor original ou ajusta
+            if (str.includes("T") || str.includes("2026-")) {
+                // Tenta mapear de volta com base no ano se necessário, mas vamos tratar o formato
+                let partes = str.split("T")[0].split("-");
+                if (partes.length === 3) {
+                    // Ex: 2026-02-03 vira 3.2 ou similar se interpretado errado, mas o ideal é a célula estar como texto na planilha
+                    return partes[1] + "." + partes[2].substring(0, 1); 
+                }
+            }
+            return str;
+        };
 
         let linhasTabela = "";
         idebGlobal.forEach(d => {
@@ -406,6 +421,9 @@
             let mediaPad = getValue(d, "nota média padronizada") || getValue(d, "nota media padronizada") || "-";
             let idebObs = getValue(d, "ideb observado") || getValue(d, "ideb") || "-";
             let meta = getValue(d, "meta") || "-";
+
+            // Limpeza de segurança
+            idebObs = limparNumero(idebObs);
 
             linhasTabela += `
             <tr>
@@ -444,6 +462,7 @@
         `;
 
         container.innerHTML = html;
+    }
     }
 
     // ---------------------------------------------------------
