@@ -64,21 +64,6 @@
         .filtro-select { padding: 12px 14px; border-radius: 8px; border: 1px solid #d1d5db; flex: 1; min-width: 220px; font-size: 0.95rem; color: #374151; font-weight: 500; outline: none; cursor: pointer; background: #f9fafb; transition: all 0.2s;}
         .filtro-select:focus { border-color: #f59e0b; background: white; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1); }
         
-        .cartao-doc { display: flex; align-items: center; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 15px; text-decoration: none; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);}
-        .cartao-doc:hover { border-color: #059669; box-shadow: 0 8px 15px rgba(5, 150, 105, 0.08); transform: translateY(-2px);}
-        .doc-icone { font-size: 2.2rem; margin-right: 20px; color: #9ca3af; }
-        .cartao-doc:hover .doc-icone { color: #059669; }
-        .doc-info { flex: 1; }
-        .doc-titulo { font-weight: 600; font-size: 1.1rem; color: #1f2937; margin-bottom: 8px; }
-        .doc-tags { font-size: 0.8rem; display: flex; gap: 8px; flex-wrap: wrap; font-weight: 500;}
-        .tag { background: #f3f4f6; color: #4b5563; padding: 4px 12px; border-radius: 6px; }
-
-        .cartao-curriculo { background: white; padding: 25px; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); transition: all 0.2s;}
-        .cartao-curriculo:hover { border-color: #f59e0b; box-shadow: 0 8px 15px rgba(245, 158, 11, 0.08); transform: translateY(-2px);}
-        .curr-unidade { font-weight: 700; color: #111827; margin-top: 10px; margin-bottom: 5px; font-size: 1.05rem;}
-        .curr-objeto { font-weight: 600; color: #4b5563; margin-bottom: 15px; font-size: 0.95rem; display: flex; align-items: center; gap: 5px;}
-        .curr-habilidade { background: #fdf8f6; padding: 18px; border-radius: 10px; border-left: 4px solid #f59e0b; color: #1f2937; line-height: 1.6; font-size: 1rem; }
-
         #loading { text-align: center; padding: 50px; color: #6b7280; font-size: 1.1rem; grid-column: 1 / -1; font-weight: 500;}
 
         /* CSS PAINÉIS */
@@ -384,8 +369,8 @@
         } catch (erro) { container.innerHTML += `<p style="color:red;">Falha ao carregar.</p>`; }
     }
 
- // ---------------------------------------------------------
-    // MOTOR DO PAINEL HISTÓRICO DO IDEB (BLINDADO CONTRA DATAS)
+    // ---------------------------------------------------------
+    // MOTOR DO PAINEL HISTÓRICO DO IDEB (BLINDADO)
     // ---------------------------------------------------------
     function desenharTelaIDEB(dados, container, tituloBotao) {
         idebGlobal = dados.filter(d => getValue(d, "ano") || getValue(d, "ideb"));
@@ -397,18 +382,12 @@
 
         idebGlobal.sort((a, b) => (parseInt(getValue(a, "ano")) || 0) - (parseInt(getValue(b, "ano")) || 0));
 
-        // Função auxiliar para limpar datas indesejadas que o Sheets cria
         const limparNumero = (val) => {
             if (!val) return "-";
             let str = val.toString().trim();
-            // Se o Sheets transformou em data (ex: 2026-02-03...), descarta e tenta ler o valor original ou ajusta
             if (str.includes("T") || str.includes("2026-")) {
-                // Tenta mapear de volta com base no ano se necessário, mas vamos tratar o formato
                 let partes = str.split("T")[0].split("-");
-                if (partes.length === 3) {
-                    // Ex: 2026-02-03 vira 3.2 ou similar se interpretado errado, mas o ideal é a célula estar como texto na planilha
-                    return partes[1] + "." + partes[2].substring(0, 1); 
-                }
+                if (partes.length === 3) return partes[1] + "." + partes[2].substring(0, 1); 
             }
             return str;
         };
@@ -422,7 +401,6 @@
             let idebObs = getValue(d, "ideb observado") || getValue(d, "ideb") || "-";
             let meta = getValue(d, "meta") || "-";
 
-            // Limpeza de segurança
             idebObs = limparNumero(idebObs);
 
             linhasTabela += `
@@ -460,13 +438,11 @@
             </div>
         </div>
         `;
-
         container.innerHTML = html;
-    }
     }
 
     // ---------------------------------------------------------
-    // DEMAIS PAINÉIS MANTIDOS
+    // DEMAIS PAINÉIS
     // ---------------------------------------------------------
     function desenharTelaExterna(dados, container, tituloBotao) {
         externaGlobal = dados.filter(d => getValue(d, "descritor") && getValue(d, "percentual de acerto"));
